@@ -1,137 +1,57 @@
 "use client";
 
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Chip } from "@mui/material";
 import Link from "next/link";
+import { useColors } from "@/hooks/useColors";
+
+const cards = [
+  { titulo: "Atividades",  descricao: "Gerencie tarefas, trabalhos e avaliações de forma centralizada.", link: "/activities", tag: "Acadêmico" },
+  { titulo: "Calendário",  descricao: "Acompanhe eventos, provas e datas importantes do ano letivo.",    link: "/calendario",  tag: "Organização" },
+  { titulo: "Comunidade",  descricao: "Fique por dentro das novidades e comunicados escolares.",           link: "/comunidade",  tag: "Social" },
+  { titulo: "Suporte (SAC)", descricao: "Envie sugestões, dúvidas e opiniões para a equipe escolar.",    link: "/feedback",   tag: "Ajuda" },
+];
 
 export default function Home() {
+  const { primary, bg, btnOutlined } = useColors();
+
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "#0f172a",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        pt: 14, // 🔥 Aumentado espaço superior
-        pb: 12,
-      }}
-    >
-      {/* CONTAINER CENTRAL */}
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: "1600px",
-          margin: "0 auto",
-          px: 6,
-          textAlign: "center",
-        }}
-      >
-        {/* TÍTULO */}
-        <Typography variant="h2" fontWeight="bold" mb={6}>
-          👋 Bem-vindo ao Conecta Portal Escola
+    <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
+
+      {/* Hero */}
+      <Box sx={{ mb: { xs: 8, md: 10 }, maxWidth: 600 }}>
+        <Typography variant="h3" fontWeight={700} sx={{ color: "white", lineHeight: 1.2, mb: 2.5, fontSize: { xs: "1.8rem", md: "2.4rem" } }}>
+          Bem-vindo ao{" "}
+          <Box component="span" sx={{ color: primary }}>Conecta Portal</Box>{" "}
+          Escolar
         </Typography>
-
-        <Typography
-          variant="h6"
-          sx={{
-            color: "rgba(255,255,255,0.75)",
-            maxWidth: "800px",
-            margin: "0 auto",
-            
-          }}
-          mb={18}        >
-          Uma plataforma moderna para gestão acadêmica, comunicação
-          escolar e organização educacional.
-         <p/>
-         
+        <Typography sx={{ color: "rgba(255,255,255,0.55)", fontSize: "1rem", lineHeight: 1.7, maxWidth: 520 }}>
+          Uma plataforma moderna para gestão acadêmica, comunicação escolar e organização educacional.
         </Typography>
+      </Box>
 
-        {/* CARDS PRINCIPAIS */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 6, // 🔥 Espaçamento maior entre os cards
-            flexWrap: "wrap",
-          }}
-        >
-          {[
-            {
-              titulo: "📚 Atividades",
-              descricao: "Gerencie tarefas, trabalhos e avaliações.",
-              link: "/activities",
-            },
-            {
-              titulo: "📅 Calendário",
-              descricao: "Acompanhe eventos e datas importantes.",
-              link: "/calendario",
-            },
-            {
-              titulo: "🌐 Comunidade",
-              descricao: "Fique por dentro das novidades escolares.",
-              link: "/comunidade",
-            },
-            {
-              titulo: "💬 Feedback",
-              descricao: "Envie sugestões e opiniões.",
-              link: "/feedback",
-            },
-          ].map((item, index) => (
-            <Box
-              key={index}
-              sx={{
-                flex: "1 1 22%",
-                minWidth: "260px",
-                height: "320px",
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(0,255,153,0.4)",
-                borderRadius: 6,
-                p: 6,
-                backdropFilter: "blur(14px)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  boxShadow: "0 0 40px rgba(0,255,153,0.7)",
-                  transform: "translateY(-10px)",
-                },
-              }}
-            >
-              <Box>
-                <Typography variant="h5" fontWeight="bold" mb={3}>
-                  {item.titulo}
-                </Typography>
-
-                <Typography
-                  sx={{ color: "rgba(255,255,255,0.75)" }}
-                >
-                  {item.descricao}
-                </Typography>
+      {/* Cards */}
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 3 }}>
+        {cards.map((item) => (
+          <Box key={item.link} sx={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 1, p: 3.5,
+            display: "flex", flexDirection: "column", gap: 2,
+            transition: "border-color 0.2s, background 0.2s",
+            "&:hover": { borderColor: `${primary}44`, background: `${primary}06` },
+          }}>
+            <Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "white" }}>{item.titulo}</Typography>
+                <Chip label={item.tag} size="small" sx={{ fontSize: "0.65rem", height: 20, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }} />
               </Box>
-
-              <Link href={item.link}>
-                <Button
-                  sx={{
-                    mt: 4, // 🔥 Mais espaço antes do botão
-                    background: "#00ff99",
-                    color: "#0f172a",
-                    fontWeight: "bold",
-                    borderRadius: 3,
-                    "&:hover": {
-                      boxShadow:
-                        "0 0 25px rgba(0,255,153,0.8)",
-                      background: "#00e68a",
-                    },
-                  }}
-                >
-                  Acessar
-                </Button>
-              </Link>
+              <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", lineHeight: 1.6 }}>{item.descricao}</Typography>
             </Box>
-          ))}
-        </Box>
+            <Link href={item.link} style={{ textDecoration: "none", marginTop: "auto" }}>
+              <Button fullWidth variant="outlined" size="small" sx={btnOutlined}>Acessar</Button>
+            </Link>
+          </Box>
+        ))}
       </Box>
     </Box>
   );

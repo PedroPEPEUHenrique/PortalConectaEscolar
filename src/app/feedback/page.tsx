@@ -94,14 +94,14 @@ export default function Feedback() {
           maxWidth: "600px",
           background: "rgba(255,255,255,0.05)",
           border: "1px solid rgba(0,255,153,0.4)",
-          borderRadius: 6,
+          borderRadius: 1,
           p: 6,
           backdropFilter: "blur(14px)",
           boxShadow: "0 0 40px rgba(0,255,153,0.15)",
         }}
       >
         <Typography variant="h4" fontWeight="bold" mb={1} textAlign="center" color="white">
-          💬 Enviar Feedback
+          Enviar Feedback
         </Typography>
         
         <Typography variant="body2" mb={4} textAlign="center" sx={{ color: "rgba(255,255,255,0.6)" }}>
@@ -109,9 +109,9 @@ export default function Feedback() {
         </Typography>
 
         {enviadoSucesso ? (
-          <Box sx={{ p: 4, textAlign: "center", background: "rgba(0,255,153,0.1)", borderRadius: 3, border: "1px solid #00ff99" }}>
+          <Box sx={{ p: 4, textAlign: "center", background: "rgba(0,255,153,0.1)", borderRadius: 1, border: "1px solid #00ff99" }}>
             <Typography variant="h6" color="#00ff99" fontWeight="bold">
-              ✅ Feedback enviado com sucesso!
+              Feedback enviado com sucesso!
             </Typography>
             <Typography variant="body2" color="white" mt={1}>
               A gestão escolar já recebeu sua mensagem. Agradecemos a colaboração.

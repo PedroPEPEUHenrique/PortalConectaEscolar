@@ -1,74 +1,64 @@
 "use client";
 
-import Grid from "@mui/material/Grid";
-// Componente Grid do Material UI para criar layouts responsivos.
-
+import Grid from "@mui/material/Grid"; // Componente Grid do Material UI
 import { Card, CardContent, Typography, Box } from "@mui/material";
-// Importação dos componentes
-
 
 export default function CardSection({ title }: { title: string }) {
-  // O componente recebe um "title" do tipo string
-
   return (
-    // Container principal com classes CSS
-    <Box className="container mt-5">
+    <Box sx={{ mt: 5, mb: 5, width: "100%" }}>
       
       {/* Título da seção */}
-      <Typography variant="h4" gutterBottom fontWeight="bold">
+      <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ color: "white", mb: 4 }}>
         {title}
-        {/* Exibe o título recebido como propriedade */}
       </Typography>
 
       {/* Container do Grid */}
       <Grid container spacing={4}>
-        {/* spacing={4} define o espaçamento entre os itens */}
-
+        
         {/* Criação de 4 cards usando map */}
         {[1, 2, 3, 4].map((item) => (
           
           <Grid
-            key={item} // Chave única obrigatória no React
-            size={{ xs: 12, sm: 6, md: 6, lg: 3 }}
-            // Responsividade:
-            // xs = 12 (ocupa toda largura no celular)
-            // sm = 6  (metade da tela no tablet)
-            // md = 6  (metade da tela em telas médias)
-            // lg = 3  (um quarto da tela no desktop grande)
+            item // 
+            key={item}
+            // 🟢 
+            xs={12}
+            sm={6}
+            md={6}
+            lg={3}
           >
             
-            {/* Card individual */}
+            {/* Card individual com o tema Dark Neon do seu projeto */}
             <Card
               sx={{
-                borderRadius: 4, // Bordas arredondadas
-                boxShadow: 6,    // Sombra do card
-                height: "100%",  // Altura total disponível
-                transition: "0.3s ease", // Animação suave
+                background: "rgba(255,255,255,0.05)", // Fundo de vidro
+                border: "1px solid rgba(0,255,153,0.3)", // Borda neon sutil
+                backdropFilter: "blur(14px)",
+                color: "white",
+                borderRadius: 1,
+                height: "100%", 
+                minHeight: "180px", // Garante um tamanho mínimo mesmo se tiver pouco texto
+                transition: "all 0.3s ease", 
 
                 // Efeito ao passar o mouse
                 "&:hover": {
                   transform: "translateY(-8px)", 
-                  // Move o card levemente para cima
+                  boxShadow: "0 0 25px rgba(0,255,153,0.4)", // Brilho neon no hover
+                  borderColor: "#00ff99",
                 },
               }}
             >
-              
-              {/* Conteúdo interno do card */}
-              <CardContent>
-
-                {/* Título do card */}
-                <Typography variant="h6" fontWeight="bold">
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: "#00ff99" }}>
                   Card {item}
-                  {/* Exibe o número do card */}
                 </Typography>
 
-                {/* Texto abaixo do título */}
-                <Typography variant="body2" mt={1}>
-                  Texto
+                <Typography variant="body2" mt={2} sx={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>
+                  Este é um texto de exemplo para o card {item}. Ele se ajusta perfeitamente em telas de todos os tamanhos.
                 </Typography>
-
               </CardContent>
             </Card>
+            
           </Grid>
         ))}
       </Grid>

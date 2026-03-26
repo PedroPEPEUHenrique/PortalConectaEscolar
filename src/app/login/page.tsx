@@ -1,162 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase"; // Importando nosso cliente configurado
-import { Box, Typography, TextField, Button, Divider, Alert } from "@mui/material";
+import { supabase } from "@/lib/supabase";
+import { Box, Typography, TextField, Button, Divider, Alert, InputAdornment, IconButton } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Link from "next/link";
+import { useColors } from "@/hooks/useColors";
+
+const MAX_TENTATIVAS = 5;
+const BLOQUEIO_MS = 60_000;
+let tentativas = 0;
+let bloqueadoAte = 0;
 
 export default function Login() {
   const router = useRouter();
-  
-  // Estados para os campos e para o controle da tela
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { primary, bg, paper, btnPrimary, inputStyle } = useColors();
 
-  // Estilo padronizado para os campos no tema dark (Bordas neon)
-  const textFieldEstilo = {
-    "& .MuiOutlinedInput-root": { 
-      color: "white",
-      "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-      "&:hover fieldset": { borderColor: "rgba(0,255,153,0.5)" },
-      "&.Mui-focused fieldset": { borderColor: "#00ff99" }
-    },
-    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-    "& .MuiInputLabel-root.Mui-focused": { color: "#00ff99" }
-  };
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [mostrarSenha, setMostrar]  = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
 
-  // Função principal de autenticação
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Evita recarregar a página
-    setLoading(true);
-    setError(null);
-
-    // Chamada ao Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError("Email ou senha incorretos.");
-      setLoading(false);
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (Date.now() < bloqueadoAte) {
+      const restante = Math.ceil((bloqueadoAte - Date.now()) / 1000);
+      setError(`Muitas tentativas. Aguarde ${restante}s.`);
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) { setError("Insira um e-mail válido."); return; }
+    if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
 
-    // Se deu certo, redireciona para a página principal ou dashboard
-    console.log("Login efetuado com sucesso!", data.user);
-    router.push("/activities"); 
-  };
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      tentativas += 1;
+      if (tentativas >= MAX_TENTATIVAS) { bloqueadoAte = Date.now() + BLOQUEIO_MS; tentativas = 0; setError("Conta bloqueada temporariamente. Tente em 1 minuto."); }
+      else setError("E-mail ou senha incorretos.");
+      setLoading(false); return;
+    }
+    tentativas = 0;
+    router.push("/activities");
+  }, [email, password, router]);
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "#0f172a",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: 3,
-      }}
-    >
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: "1000px",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(0,255,153,0.4)",
-          borderRadius: 6,
-          backdropFilter: "blur(14px)",
-          boxShadow: "0 0 40px rgba(0,255,153,0.15)",
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" }, // Responsivo: Empilha no celular
-          overflow: "hidden",
-        }}
-      >
-        {/* LADO ESQUERDO — LOGO */}
-        <Box sx={{ flex: 1, background: "rgba(0,255,153,0.05)", display: "flex", alignItems: "center", justifyContent: "center", p: 6 }}>
-          <img src="/logo-portal-inteligente.png" alt="Logo" style={{ width: "220px", height: "auto" }} />
+    <Box sx={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", px: 3 }}>
+      <Box sx={{
+        width: "100%", maxWidth: 920,
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 3, overflow: "hidden",
+        display: "flex", flexDirection: { xs: "column", md: "row" },
+      }}>
+        {/* Lado esquerdo */}
+        <Box sx={{ flex: 1, background: `${primary}08`, borderRight: { md: "1px solid rgba(255,255,255,0.06)" }, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", p: { xs: 5, md: 6 }, gap: 2 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-portal-inteligente.png" alt="Logo Conecta Portal Escolar" style={{ width: 180, height: "auto" }} />
+          <Box sx={{ textAlign: "center", mt: 1 }}>
+            <Typography sx={{ color: primary, fontWeight: 700, fontSize: "1rem" }}>Conecta Portal Escolar</Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.8rem", mt: 0.5 }}>Plataforma de Gestão Acadêmica</Typography>
+          </Box>
         </Box>
 
-        {/* LADO DIREITO — FORMULÁRIO */}
-        <Box 
-          component="form" 
-          onSubmit={handleLogin} // Formulário aciona a função ao dar Enter ou clicar no botão
-          sx={{ flex: 1, p: 6, color: "white" }}
-        >
-          <Typography variant="h4" fontWeight="bold" mb={4}>
-            🔐 Login
-          </Typography>
+        {/* Formulário */}
+        <Box component="form" onSubmit={handleLogin} noValidate autoComplete="on"
+          sx={{ flex: 1, p: { xs: 4, md: 6 }, color: "white" }}>
+          <Typography variant="h5" fontWeight={700} mb={1}>Entrar na conta</Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.875rem", mb: 4 }}>Use suas credenciais escolares</Typography>
 
-          {/* Mensagem de Erro */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" role="alert" sx={{ mb: 3, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5", "& .MuiAlert-icon": { color: "#f87171" } }}>
               {error}
             </Alert>
           )}
 
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            margin="normal"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            sx={textFieldEstilo} // Aplicando o estilo neon
-          />
+          <TextField fullWidth label="E-mail" type="email" margin="normal" value={email}
+            onChange={e => setEmail(e.target.value.trim())} required autoComplete="email"
+            inputProps={{ "aria-required": true, maxLength: 254 }} sx={inputStyle} />
 
-          <TextField
-            fullWidth
-            label="Senha"
-            type="password"
-            margin="normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            sx={textFieldEstilo} // Aplicando o estilo neon
-          />
+          <TextField fullWidth label="Senha" type={mostrarSenha ? "text" : "password"} margin="normal"
+            value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password"
+            inputProps={{ "aria-required": true, maxLength: 128 }}
+            InputProps={{ endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={() => setMostrar(p => !p)} edge="end"
+                  aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                  sx={{ color: "rgba(255,255,255,0.4)" }}>
+                  {mostrarSenha ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                </IconButton>
+              </InputAdornment>
+            )}} sx={inputStyle} />
 
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disabled={loading}
-            sx={{
-              mt: 3,
-              py: 1.5,
-              background: "#00ff99",
-              color: "#0f172a",
-              fontWeight: "bold",
-              borderRadius: 3,
-              "&:hover": { boxShadow: "0 0 25px rgba(0,255,153,0.8)", background: "#00e68a" },
-              "&:disabled": { background: "rgba(0,255,153,0.3)" }
-            }}
-          >
+          <Button type="submit" fullWidth variant="contained" disabled={loading} sx={{ ...btnPrimary, mt: 3, py: 1.4 }}>
             {loading ? "Entrando..." : "Entrar"}
           </Button>
 
-          <Divider sx={{ my: 4, borderColor: "rgba(255,255,255,0.2)" }} />
+          <Divider sx={{ my: 3, borderColor: "rgba(255,255,255,0.07)" }} />
 
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={() => router.push('/cadastro')} // Rota para tela de cadastro
-            sx={{
-              py: 1.5,
-              borderColor: "#00ff99", color: "#00ff99", fontWeight: "bold", borderRadius: 3,
-              "&:hover": { background: "rgba(0,255,153,0.1)", borderColor: "#00ff99" },
-            }}
-          >
-            Criar Conta
+          <Button fullWidth variant="outlined" onClick={() => router.push("/cadastro")}
+            sx={{ py: 1.4, borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)", "&:hover": { borderColor: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.03)", color: "white" } }}>
+            Criar conta
           </Button>
 
-          {/* LINKS */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4, fontSize: "0.9rem" }}>
-            <Link href="/recuperar-senha" style={{ color: "#00ff99", textDecoration: "none" }}>Recuperar senha</Link>
-            <Link href="/alterar-senha" style={{ color: "#00ff99", textDecoration: "none" }}>Alterar senha</Link>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+            <Link href="/recuperar-senha" style={{ color: primary, textDecoration: "none", fontSize: "0.85rem" }}>Esqueceu a senha?</Link>
+            <Link href="/alterar-senha" style={{ color: "rgba(255,255,255,0.35)", textDecoration: "none", fontSize: "0.85rem" }}>Alterar senha</Link>
           </Box>
         </Box>
       </Box>

@@ -1,269 +1,138 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Box, Typography, Chip, CircularProgress, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem
-} from "@mui/material";
-
+import { Box, Typography, Chip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from "@mui/material";
+import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 
-type Evento = {
-  id: string;
-  data: string;
-  evento: string;
-  tipo: string;
-};
+type Evento = { id: string; data: string; evento: string; tipo: string };
 
 export default function Calendario() {
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
 
-  // RBAC: Estado para guardar o cargo do usuário
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  // Estados do Modal
-  const [openModal, setOpenModal] = useState(false);
+  const [eventos, setEventos]       = useState<Evento[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [userRole, setUserRole]     = useState<string | null>(null);
+  const [openModal, setOpenModal]   = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
+  const [salvando, setSalvando]     = useState(false);
+  const [novoEvento, setNovoEvento] = useState({ data: "", evento: "", tipo: "Evento" });
 
-  const [novoEvento, setNovoEvento] = useState({
-    data: "",
-    evento: "",
-    tipo: "Evento",
-  });
-
-  // Verifica quem está logado
-  const carregarPerfilUsuario = async () => {
+  const carregarPerfil = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data, error } = await supabase
-          .from('perfis')
-          .select('cargo')
-          .eq('id', user.id)
-          .single();
-          
-        if (data && !error) setUserRole(data.cargo);
-      } else {
-        // Para testes: descomente para simular um gestor ou admin
-        // setUserRole('gestor');
+        const { data, error } = await supabase.from("perfis").select("cargo").eq("id", user.id).single();
+        if (data && !error) setUserRole(data.cargo.toLowerCase().trim());
       }
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-    }
+    } catch {}
   };
 
-  // 🟢 REFEITO: Busca os eventos na nossa API usando GET
   const buscarEventos = async () => {
     try {
-      const resposta = await fetch("/api/eventos");
-      const dados = await resposta.json();
-      
-      if (resposta.ok) {
-        setEventos(dados);
-      } else {
-        console.error("Erro retornado pela API:", dados);
-      }
-    } catch (error) {
-      console.error("Erro ao fazer o fetch dos eventos", error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch("/api/eventos");
+      const dados = await res.json();
+      if (res.ok) setEventos(dados);
+    } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    carregarPerfilUsuario();
-    buscarEventos();
-  }, []);
+  useEffect(() => { carregarPerfil(); buscarEventos(); }, []);
 
-  // 🔵 e 🟡 REFEITO: Salva (POST) ou Edita (PUT) passando pela API
   const handleSalvar = async () => {
     if (!novoEvento.data || !novoEvento.evento) return;
     setSalvando(true);
-    
     try {
-      let resposta;
-
-      if (editandoId) {
-        // Faz a requisição PUT para /api/eventos/[id]
-        resposta = await fetch(`/api/eventos/${editandoId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(novoEvento),
-        });
-      } else {
-        // Faz a requisição POST para /api/eventos
-        resposta = await fetch("/api/eventos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(novoEvento),
-        });
-      }
-      
-      if (resposta.ok) {
-        buscarEventos();
-        fecharModal();
-      } else {
-        const dadosErro = await resposta.json();
-        alert("Erro ao salvar o evento: " + JSON.stringify(dadosErro));
-      }
-    } catch (error) {
-      console.error("Erro no processo de salvamento", error);
-    } finally {
-      setSalvando(false);
-    }
+      const url = editandoId ? `/api/eventos/${editandoId}` : "/api/eventos";
+      const method = editandoId ? "PUT" : "POST";
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(novoEvento) });
+      if (res.ok) { buscarEventos(); fecharModal(); }
+      else { const err = await res.json(); alert("Erro: " + JSON.stringify(err)); }
+    } catch {} finally { setSalvando(false); }
   };
 
   const handleEditar = (id: string) => {
     const ev = eventos.find(e => e.id === id);
     if (!ev) return;
     setNovoEvento({ data: ev.data, evento: ev.evento, tipo: ev.tipo });
-    setEditandoId(id);
-    setOpenModal(true);
+    setEditandoId(id); setOpenModal(true);
   };
 
-  // 🔴 REFEITO: Exclui o evento passando pela API (DELETE)
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Deseja excluir este evento?")) return;
-    
-    try {
-      const resposta = await fetch(`/api/eventos/${id}`, {
-        method: "DELETE",
-      });
-
-      if (resposta.ok) {
-        buscarEventos();
-      } else {
-        const dadosErro = await resposta.json();
-        alert("Erro ao excluir: " + JSON.stringify(dadosErro));
-      }
-    } catch (error) {
-      console.error("Erro na exclusão do evento", error);
-    }
+    const res = await fetch(`/api/eventos/${id}`, { method: "DELETE" });
+    if (res.ok) buscarEventos();
   };
 
-  const fecharModal = () => {
-    setOpenModal(false);
-    setEditandoId(null);
-    setNovoEvento({ data: "", evento: "", tipo: "Evento" });
-  };
+  const fecharModal = () => { setOpenModal(false); setEditandoId(null); setNovoEvento({ data: "", evento: "", tipo: "Evento" }); };
+  const podeGerenciar = userRole === "gestor" || userRole === "admin";
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh", background: "#0f172a", color: "white",
-        display: "flex", flexDirection: "column", alignItems: "center", pt: 10, pb: 10,
-      }}
-    >
-      <Box sx={{ width: "100%", maxWidth: "1700px", margin: "0 auto", px: 6 }}>
-        
-        {/* CABEÇALHO */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 8 }}>
-          <Typography variant="h3" fontWeight="bold">
-            📅 Calendário Escolar
-          </Typography>
-          
-          {/* RBAC: Botão aparece apenas para Gestor ou Admin */}
-          {(userRole === 'gestor' || userRole === 'admin') && (
-            <Button
-              variant="contained"
-              onClick={() => setOpenModal(true)}
-              sx={{
-                background: "#00ff99", color: "#0f172a", fontWeight: "bold", borderRadius: 3, px: 4, py: 1.5,
-                "&:hover": { background: "#00e68a", boxShadow: "0 0 20px rgba(0,255,153,0.5)" },
-              }}
-            >
-              + Novo Evento
-            </Button>
-          )}
+    <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
+
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", mb: 6, gap: 2 }}>
+        <Box>
+          <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 0.5 }}>Calendário Escolar</Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.875rem" }}>{eventos.length} evento{eventos.length !== 1 ? "s" : ""}</Typography>
         </Box>
-
-        {/* LISTA DE EVENTOS */}
-        {loading ? (
-          <Box display="flex" justifyContent="center" mt={10}><CircularProgress sx={{ color: "#00ff99" }} /></Box>
-        ) : eventos.length === 0 ? (
-          <Typography variant="h6" textAlign="center" sx={{ color: "rgba(255,255,255,0.6)" }}>
-            Nenhum evento cadastrado.
-          </Typography>
-        ) : (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {eventos.map((item) => (
-              <Box
-                key={item.id}
-                sx={{
-                  flex: "1 1 18%", minWidth: "280px", maxWidth: "320px", height: "420px",
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(0,255,153,0.4)", borderRadius: 6, p: 6,
-                  backdropFilter: "blur(14px)", display: "flex", flexDirection: "column", justifyContent: "space-between",
-                  transition: "all 0.3s ease", "&:hover": { boxShadow: "0 0 45px rgba(0,255,153,0.7)", transform: "translateY(-10px)" },
-                }}
-              >
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" mb={3}>{item.data}</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "1rem", mb: 2 }}>{item.evento}</Typography>
-                </Box>
-
-                <Box display="flex" flexDirection="column" gap={2}>
-                  <Chip
-                    label={item.tipo}
-                    sx={{
-                      alignSelf: "flex-start", fontWeight: "bold", background: "#00ff99", color: "#0f172a",
-                    }}
-                  />
-
-                  {/* RBAC: Botões de ação apenas para Gestor ou Admin */}
-                  {(userRole === 'gestor' || userRole === 'admin') && (
-                    <Box display="flex" gap={1} mt={1}>
-                      <Button size="small" variant="outlined" sx={{ borderColor: "#00e5ff", color: "#00e5ff" }} onClick={() => handleEditar(item.id)}>
-                        Editar
-                      </Button>
-                      <Button size="small" variant="outlined" sx={{ borderColor: "#ff4444", color: "#ff4444" }} onClick={() => handleExcluir(item.id)}>
-                        Excluir
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            ))}
-          </Box>
+        {podeGerenciar && (
+          <Button variant="contained" onClick={() => setOpenModal(true)} sx={btnPrimary}>+ Novo Evento</Button>
         )}
-
-        {/* MODAL */}
-        <Dialog open={openModal} onClose={fecharModal} PaperProps={{ sx: { background: "#111827", border: "1px solid rgba(0,255,153,0.4)", color: "white", borderRadius: 4, minWidth: "400px" } }}>
-          <DialogTitle sx={{ color: "#00ff99", fontWeight: "bold" }}>{editandoId ? "Editar Evento" : "Novo Evento"}</DialogTitle>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 2 }}>
-            <TextField
-              label="Data (Ex: 10/03)" fullWidth value={novoEvento.data} onChange={(e) => setNovoEvento({ ...novoEvento, data: e.target.value })}
-              InputLabelProps={{ style: { color: "rgba(255,255,255,0.7)" } }} InputProps={{ style: { color: "white" } }}
-              sx={{ "& .MuiOutlinedInput-root": { "& fieldset": { borderColor: "rgba(255,255,255,0.2)" } } }}
-            />
-            <TextField
-              label="Nome do Evento" fullWidth value={novoEvento.evento} onChange={(e) => setNovoEvento({ ...novoEvento, evento: e.target.value })}
-              InputLabelProps={{ style: { color: "rgba(255,255,255,0.7)" } }} InputProps={{ style: { color: "white" } }}
-              sx={{ "& .MuiOutlinedInput-root": { "& fieldset": { borderColor: "rgba(255,255,255,0.2)" } } }}
-            />
-            <TextField
-              select label="Tipo" fullWidth value={novoEvento.tipo} onChange={(e) => setNovoEvento({ ...novoEvento, tipo: e.target.value })}
-              InputLabelProps={{ style: { color: "rgba(255,255,255,0.7)" } }} InputProps={{ style: { color: "white" } }}
-              sx={{ "& .MuiOutlinedInput-root": { "& fieldset": { borderColor: "rgba(255,255,255,0.2)" } } }}
-            >
-              <MenuItem value="Avaliação">Avaliação</MenuItem>
-              <MenuItem value="Evento">Evento</MenuItem>
-              <MenuItem value="Reunião">Reunião</MenuItem>
-              <MenuItem value="Acadêmico">Acadêmico</MenuItem>
-              <MenuItem value="Esporte">Esporte</MenuItem>
-            </TextField>
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={fecharModal} sx={{ color: "gray" }}>Cancelar</Button>
-            <Button onClick={handleSalvar} variant="contained" disabled={salvando} sx={{ background: "#00ff99", color: "#0f172a", fontWeight: "bold", "&:hover": { background: "#00e68a" } }}>
-              {salvando ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
       </Box>
+
+      {loading ? (
+        <Box display="flex" justifyContent="center" mt={10}><CircularProgress sx={{ color: primary }} /></Box>
+      ) : eventos.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 12 }}><Typography sx={{ color: "rgba(255,255,255,0.4)" }}>Nenhum evento cadastrado.</Typography></Box>
+      ) : (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", lg: "repeat(3,1fr)" }, gap: 3 }}>
+          {eventos.map((item) => (
+            <Box key={item.id} sx={{
+              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 1, p: 3.5,
+              display: "flex", flexDirection: "column", gap: 2,
+              transition: "border-color 0.2s", "&:hover": { borderColor: `${primary}44` },
+            }}>
+              <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: primary }}>{item.data}</Typography>
+              <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.9rem", lineHeight: 1.6 }}>{item.evento}</Typography>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "auto", flexWrap: "wrap", gap: 1 }}>
+                <Chip label={item.tipo} size="small" sx={{ fontWeight: 600, fontSize: "0.75rem", background: `${primary}22`, color: primary, border: `1px solid ${primary}44` }} />
+                {podeGerenciar && (
+                  <Box display="flex" gap={1}>
+                    <Button size="small" variant="text" onClick={() => handleEditar(item.id)}
+                      sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.75rem", px: 1, "&:hover": { color: "white" } }}>Editar</Button>
+                    <Button size="small" variant="text" onClick={() => handleExcluir(item.id)}
+                      sx={{ color: "rgba(248,113,113,0.5)", fontSize: "0.75rem", px: 1, "&:hover": { color: "#f87171" } }}>Excluir</Button>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      <Dialog open={openModal} onClose={fecharModal} aria-labelledby="modal-cal-titulo"
+        PaperProps={{ sx: { ...dialogPaper, minWidth: { xs: "90vw", sm: 440 } } }}>
+        <DialogTitle id="modal-cal-titulo" sx={{ fontWeight: 700, fontSize: "1rem", pb: 1 }}>
+          {editandoId ? "Editar Evento" : "Novo Evento"}
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "16px !important" }}>
+          <TextField label="Data (ex: 2025-06-10)" fullWidth value={novoEvento.data} onChange={e => setNovoEvento({ ...novoEvento, data: e.target.value })} sx={inputStyle} />
+          <TextField label="Nome do Evento" fullWidth value={novoEvento.evento} onChange={e => setNovoEvento({ ...novoEvento, evento: e.target.value })} inputProps={{ maxLength: 300 }} sx={inputStyle} />
+          <TextField select label="Tipo" fullWidth value={novoEvento.tipo} onChange={e => setNovoEvento({ ...novoEvento, tipo: e.target.value })} sx={inputStyle}
+            SelectProps={{ MenuProps: { PaperProps: { sx: { background: paper, color: "white" } } } }}>
+            <MenuItem value="Avaliação">Avaliação</MenuItem>
+            <MenuItem value="Evento">Evento</MenuItem>
+            <MenuItem value="Reunião">Reunião</MenuItem>
+            <MenuItem value="Acadêmico">Acadêmico</MenuItem>
+            <MenuItem value="Esporte">Esporte</MenuItem>
+          </TextField>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1 }}>
+          <Button onClick={fecharModal} sx={{ color: "rgba(255,255,255,0.4)" }}>Cancelar</Button>
+          <Button onClick={handleSalvar} variant="contained" disabled={salvando || !novoEvento.data || !novoEvento.evento} sx={btnPrimary}>
+            {salvando ? "Salvando..." : editandoId ? "Atualizar" : "Salvar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

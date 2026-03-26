@@ -1,47 +1,76 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextResponse, NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
-// 🟡 FUNÇÃO PUT: Atualiza (Edita) uma atividade existente
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
+  );
+}
+
+const UpdateSchema = z.object({
+  titulo: z.string().min(1).max(200).optional(),
+  descricao: z.string().max(2000).optional(),
+  status: z.enum(["Pendente", "Em andamento", "Concluído"]).optional(),
+});
+
+const UUIDSchema = z.string().uuid("ID inválido");
+
+const secHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "Cache-Control": "no-store",
+};
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = params.id;
-    const body = await request.json();
-    
-    // Pegamos os novos dados enviados pelo front-end
-    const { titulo, descricao, status } = body;
-
-    const { data, error } = await supabase
-      .from("atividades")
-      .update({ titulo, descricao, status })
-      .eq("id", id) // Onde o ID for igual ao que passamos na URL
-      .select();
-
-    if (error) {
-      return NextResponse.json({ erro: error.message }, { status: 400 });
+    const idParsed = UUIDSchema.safeParse(params.id);
+    if (!idParsed.success) {
+      return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
     }
 
-    return NextResponse.json(data[0], { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ erro: "Erro interno no servidor ao atualizar" }, { status: 500 });
+    const body = await request.json();
+    const parsed = UpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ erro: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, { status: 422, headers: secHeaders });
+    }
+
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("atividades")
+      .update(parsed.data)
+      .eq("id", idParsed.data)
+      .select("id, titulo, descricao, status, created_at");
+
+    if (error || !data?.length) {
+      return NextResponse.json({ erro: "Falha ao atualizar atividade" }, { status: 400, headers: secHeaders });
+    }
+
+    return NextResponse.json(data[0], { status: 200, headers: secHeaders });
+  } catch {
+    return NextResponse.json({ erro: "Erro interno no servidor" }, { status: 500, headers: secHeaders });
   }
 }
 
-// 🔴 FUNÇÃO DELETE: Exclui uma atividade
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = params.id;
+    const idParsed = UUIDSchema.safeParse(params.id);
+    if (!idParsed.success) {
+      return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
+    }
 
+    const supabase = getSupabase();
     const { error } = await supabase
       .from("atividades")
       .delete()
-      .eq("id", id); // Deleta apenas a atividade com esse ID
+      .eq("id", idParsed.data);
 
     if (error) {
-      return NextResponse.json({ erro: error.message }, { status: 400 });
+      return NextResponse.json({ erro: "Falha ao excluir atividade" }, { status: 400, headers: secHeaders });
     }
 
-    return NextResponse.json({ mensagem: "Atividade excluída com sucesso!" }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ erro: "Erro interno no servidor ao excluir" }, { status: 500 });
+    return NextResponse.json({ mensagem: "Atividade excluída com sucesso" }, { status: 200, headers: secHeaders });
+  } catch {
+    return NextResponse.json({ erro: "Erro interno no servidor" }, { status: 500, headers: secHeaders });
   }
 }
