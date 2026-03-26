@@ -17,9 +17,10 @@ const UpdateSchema = z.object({
 const UUIDSchema = z.string().uuid();
 const secHeaders = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const idParsed = UUIDSchema.safeParse(params.id);
+    const { id } = await params;
+    const idParsed = UUIDSchema.safeParse(id);
     if (!idParsed.success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
 
     const body = await request.json();
@@ -40,9 +41,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const idParsed = UUIDSchema.safeParse(params.id);
+    const { id } = await params;
+    const idParsed = UUIDSchema.safeParse(id);
     if (!idParsed.success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
 
     const supabase = getSupabase();

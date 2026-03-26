@@ -22,9 +22,10 @@ const secHeaders = {
   "Cache-Control": "no-store",
 };
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const idParsed = UUIDSchema.safeParse(params.id);
+    const { id } = await params;
+    const idParsed = UUIDSchema.safeParse(id);
     if (!idParsed.success) {
       return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
     }
@@ -52,9 +53,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const idParsed = UUIDSchema.safeParse(params.id);
+    const { id } = await params;
+    const idParsed = UUIDSchema.safeParse(id);
     if (!idParsed.success) {
       return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: secHeaders });
     }

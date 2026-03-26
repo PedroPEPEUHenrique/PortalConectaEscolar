@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 // 🟡 PUT: Atualiza (Edita) um evento existente
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const body = await request.json();
     
     const { data: dataEvento, evento, tipo } = body;
@@ -26,9 +26,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 // 🔴 DELETE: Exclui um evento
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const { error } = await supabase
       .from("eventos")

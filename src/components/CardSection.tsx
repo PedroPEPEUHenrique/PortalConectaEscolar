@@ -19,13 +19,8 @@ export default function CardSection({ title }: { title: string }) {
         {[1, 2, 3, 4].map((item) => (
           
           <Grid
-            item // 
             key={item}
-            // 🟢 
-            xs={12}
-            sm={6}
-            md={6}
-            lg={3}
+            size={{ xs: 12, sm: 6, md: 6, lg: 3 }}
           >
             
             {/* Card individual com o tema Dark Neon do seu projeto */}
