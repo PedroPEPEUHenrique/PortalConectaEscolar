@@ -55,6 +55,10 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     document.documentElement.classList.toggle("reduce-motion", reducaoMovimento);
   }, [reducaoMovimento]);
 
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSizeModifier + "px";
+  }, [fontSizeModifier]);
+
   const aumentarFonte = useCallback(() => setFontSizeModifier(p => Math.min(p + 2, 22)), []);
   const diminuirFonte = useCallback(() => setFontSizeModifier(p => Math.max(p - 2, 12)), []);
   const resetarFonte = useCallback(() => setFontSizeModifier(14), []);

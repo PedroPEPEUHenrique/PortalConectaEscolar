@@ -3,6 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAccessibility } from "@/context/AccessibilityContext";
 
+const PALETAS: Record<string, { primary: string; bg: string }> = {
+  padrao:                      { primary: "#00c77a", bg: "#111827" },
+  "daltonismo-verde-vermelho": { primary: "#ffd700", bg: "#111827" },
+  monocromatico:               { primary: "#ffffff", bg: "#1a1a1a" },
+  "alto-contraste":            { primary: "#ffff00", bg: "#111111" },
+};
+
 export default function AccessibilityWidget() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -15,16 +22,12 @@ export default function AccessibilityWidget() {
     resetarFonte,
     colorMode,
     setColorMode,
-    lupaAtiva,
-    toggleLupa,
-    reducaoMovimento,
-    toggleReducaoMovimento,
     resetarTudo,
   } = useAccessibility();
 
+  const { primary: cor, bg: bgPanel } = PALETAS[colorMode] ?? PALETAS.padrao;
   const pct = Math.round((fontSizeModifier / 14) * 100);
 
-  // Fecha o painel ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -40,7 +43,6 @@ export default function AccessibilityWidget() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ESC fecha o painel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -50,65 +52,22 @@ export default function AccessibilityWidget() {
   }, []);
 
   const colorOptions: { value: Parameters<typeof setColorMode>[0]; label: string; desc: string }[] = [
-    { value: "padrao", label: "Padrão", desc: "Verde/Azul" },
-    { value: "daltonismo-verde-vermelho", label: "Deuteranopia", desc: "Amarelo/Azul" },
-    { value: "monocromatico", label: "Monocromático", desc: "Preto/Branco" },
-    { value: "alto-contraste", label: "Alto Contraste", desc: "Amarelo/Preto" },
+    { value: "padrao",                      label: "Padrão",        desc: "Verde/Azul" },
+    { value: "daltonismo-verde-vermelho",   label: "Deuteranopia",  desc: "Amarelo/Azul" },
+    { value: "monocromatico",              label: "Monocromático", desc: "Preto/Branco" },
+    { value: "alto-contraste",             label: "Alto Contraste",desc: "Amarelo/Preto" },
   ];
 
   return (
     <>
-      {/* Lupa cursor */}
       <style>{`
-        ${lupaAtiva ? `
-          * { cursor: zoom-in !important; }
-          *:hover { font-size: calc(1em * 1.2) !important; transition: font-size 0.15s ease; }
-        ` : ""}
         .reduce-motion * { transition: none !important; animation: none !important; }
-        
+
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(12px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
         .a11y-panel { animation: slideUp 0.2s ease; }
-
-        .a11y-toggle {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 14px;
-          border-radius: 10px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          cursor: pointer;
-          transition: background 0.2s;
-          width: 100%;
-          color: white;
-          font-size: 0.875rem;
-          font-family: inherit;
-        }
-        .a11y-toggle:hover { background: rgba(255,255,255,0.08); }
-        .a11y-toggle.active { border-color: rgba(0,199,122,0.5); background: rgba(0,199,122,0.08); }
-
-        .a11y-switch {
-          width: 40px; height: 22px;
-          border-radius: 99px;
-          background: rgba(255,255,255,0.15);
-          position: relative;
-          transition: background 0.2s;
-          flex-shrink: 0;
-        }
-        .a11y-switch.on { background: #00c77a; }
-        .a11y-switch::after {
-          content: '';
-          position: absolute;
-          top: 3px; left: 3px;
-          width: 16px; height: 16px;
-          border-radius: 50%;
-          background: white;
-          transition: transform 0.2s;
-        }
-        .a11y-switch.on::after { transform: translateX(18px); }
 
         .color-chip {
           padding: 8px 12px;
@@ -123,8 +82,8 @@ export default function AccessibilityWidget() {
           font-size: 0.8rem;
           width: 100%;
         }
-        .color-chip:hover { border-color: rgba(0,199,122,0.4); background: rgba(0,199,122,0.06); }
-        .color-chip.selected { border-color: #00c77a; background: rgba(0,199,122,0.12); }
+        .color-chip:hover { border-color: ${cor}66; background: ${cor}10; }
+        .color-chip.selected { border-color: ${cor}; background: ${cor}20; }
 
         .font-btn {
           width: 38px; height: 38px;
@@ -138,7 +97,7 @@ export default function AccessibilityWidget() {
           transition: all 0.15s;
           font-family: inherit;
         }
-        .font-btn:hover:not(:disabled) { background: rgba(0,199,122,0.15); border-color: rgba(0,199,122,0.4); }
+        .font-btn:hover:not(:disabled) { background: ${cor}25; border-color: ${cor}66; }
         .font-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .a11y-fab {
@@ -146,16 +105,16 @@ export default function AccessibilityWidget() {
           bottom: 28px; right: 28px;
           width: 54px; height: 54px;
           border-radius: 50%;
-          background: #00c77a;
+          background: ${cor};
           border: none;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 20px rgba(0,199,122,0.35);
+          box-shadow: 0 4px 20px ${cor}55;
           transition: transform 0.2s, box-shadow 0.2s;
           z-index: 9999;
           color: #0f172a;
         }
-        .a11y-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(0,199,122,0.5); }
+        .a11y-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px ${cor}80; }
         .a11y-fab:focus-visible { outline: 3px solid white; outline-offset: 3px; }
       `}</style>
 
@@ -185,8 +144,8 @@ export default function AccessibilityWidget() {
             bottom: 94,
             right: 28,
             width: 320,
-            background: "#111827",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: bgPanel,
+            border: `1px solid ${cor}30`,
             borderRadius: 16,
             padding: 20,
             zIndex: 9998,
@@ -198,8 +157,8 @@ export default function AccessibilityWidget() {
           {/* Cabeçalho */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#00c77a" }}>♿</span> Acessibilidade
+              <div style={{ fontWeight: 700, fontSize: "0.95rem", color: cor }}>
+                Acessibilidade
               </div>
               <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
                 Preferências salvas automaticamente
@@ -249,27 +208,6 @@ export default function AccessibilityWidget() {
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Toggles */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-            <button
-              className={`a11y-toggle ${lupaAtiva ? "active" : ""}`}
-              onClick={toggleLupa}
-              aria-pressed={lupaAtiva}
-            >
-              <span>🔍 Lupa (texto ampliado no hover)</span>
-              <span className={`a11y-switch ${lupaAtiva ? "on" : ""}`} />
-            </button>
-
-            <button
-              className={`a11y-toggle ${reducaoMovimento ? "active" : ""}`}
-              onClick={toggleReducaoMovimento}
-              aria-pressed={reducaoMovimento}
-            >
-              <span>🎞 Reduzir Animações</span>
-              <span className={`a11y-switch ${reducaoMovimento ? "on" : ""}`} />
-            </button>
           </div>
 
           {/* Reset geral */}
