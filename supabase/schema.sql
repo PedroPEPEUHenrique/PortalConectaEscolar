@@ -21,14 +21,21 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- O campo `id` referencia diretamente o usuário do Supabase Auth.
 -- =============================================================================
 
+-- Sequência para gerar números de matrícula únicos (ex: 100001, 100002...)
+CREATE SEQUENCE IF NOT EXISTS matricula_seq START 100001;
+
 CREATE TABLE IF NOT EXISTS perfis (
   id            UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   cargo         TEXT NOT NULL DEFAULT 'aluno'
                   CHECK (cargo IN ('aluno', 'professor', 'gestor', 'admin')),
   email         TEXT,
   nome_completo TEXT,
+  matricula     TEXT UNIQUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Backfill: gera matrícula para perfis existentes que ainda não têm
+UPDATE perfis SET matricula = LPAD(nextval('matricula_seq')::text, 6, '0') WHERE matricula IS NULL;
 
 -- Trigger: cria um perfil automaticamente quando um novo usuário é cadastrado
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -37,8 +44,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.perfis (id, cargo, email)
-  VALUES (NEW.id, 'aluno', NEW.email)
+  INSERT INTO public.perfis (id, cargo, email, matricula)
+  VALUES (NEW.id, 'aluno', NEW.email, LPAD(nextval('matricula_seq')::text, 6, '0'))
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;

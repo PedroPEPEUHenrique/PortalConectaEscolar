@@ -5,7 +5,8 @@ import { useState } from "react";
 import {
   AppBar, Toolbar, Box, Button, Avatar, Menu, MenuItem,
   IconButton, Tooltip, Divider, Drawer, List, ListItem,
-  ListItemButton, ListItemText, useTheme
+  ListItemButton, ListItemText, useTheme,
+  Dialog, DialogContent, DialogTitle, Typography, CircularProgress,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import Link from "next/link";
@@ -40,11 +41,24 @@ export default function Navbar() {
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openCarteirinha, setOpenCarteirinha] = useState(false);
+  const [perfilAluno, setPerfilAluno] = useState<{ nome_completo: string | null; matricula: string | null } | null>(null);
+  const [loadingCarteirinha, setLoadingCarteirinha] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+
+  const handleAbrirCarteirinha = async () => {
+    handleClose();
+    setOpenCarteirinha(true);
+    if (perfilAluno) return;
+    setLoadingCarteirinha(true);
+    const { data } = await supabase.from("perfis").select("nome_completo, matricula").eq("id", user!.id).single();
+    setPerfilAluno({ nome_completo: data?.nome_completo ?? null, matricula: data?.matricula ?? null });
+    setLoadingCarteirinha(false);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -200,6 +214,11 @@ export default function Navbar() {
                     {user.email}
                   </MenuItem>
                   <Divider sx={{ borderColor: "rgba(255,255,255,0.07)", my: 0.5 }} />
+                  {cargo === "aluno" && (
+                    <MenuItem onClick={handleAbrirCarteirinha} sx={{ fontSize: "0.875rem", fontFamily: "'Inclusive Sans', sans-serif" }}>
+                      Carteirinha de Estudante
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout} sx={{ color: "#f87171", fontSize: "0.875rem", fontFamily: "'Inclusive Sans', sans-serif" }}>
                     Sair da conta
                   </MenuItem>
@@ -246,6 +265,78 @@ export default function Navbar() {
       </Drawer>
 
       <Toolbar sx={{ minHeight: "66px" }} />
+
+      {/* Modal Carteirinha de Estudante */}
+      <Dialog
+        open={openCarteirinha}
+        onClose={() => setOpenCarteirinha(false)}
+        PaperProps={{
+          sx: {
+            background: bg,
+            border: `1px solid ${primary}22`,
+            borderRadius: 3,
+            color: "white",
+            maxWidth: 440,
+            width: "100%",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: "1rem", pb: 1, fontFamily: "'Inclusive Sans', sans-serif" }}>
+          Carteirinha de Estudante
+        </DialogTitle>
+        <DialogContent sx={{ pb: 3 }}>
+          {loadingCarteirinha ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress sx={{ color: primary }} />
+            </Box>
+          ) : (
+            /* Cartão estilo crachá */
+            <Box sx={{
+              background: `linear-gradient(135deg, ${primary}cc, ${primary}66)`,
+              borderRadius: 2,
+              p: "1.3em",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 2,
+              boxShadow: "3px 3px 18px rgba(0,0,0,0.5)",
+              minHeight: 160,
+            }}>
+              {/* Dados */}
+              <Box sx={{ flex: 1, wordBreak: "break-word" }}>
+                {/* Nome da escola */}
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.75, letterSpacing: "0.08em", textTransform: "uppercase", mb: 1.5 }}>
+                  Conecta Portal Escolar
+                </Typography>
+
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Nome
+                </Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: "1rem", mb: 1.5, lineHeight: 1.3 }}>
+                  {perfilAluno?.nome_completo || user?.email?.split("@")[0] || "—"}
+                </Typography>
+
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Matrícula
+                </Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: "1rem", letterSpacing: "0.1em" }}>
+                  {perfilAluno?.matricula || "—"}
+                </Typography>
+              </Box>
+
+              {/* Foto placeholder */}
+              <Box sx={{
+                width: 72, height: 96, flexShrink: 0,
+                background: "rgba(255,255,255,0.9)",
+                borderRadius: 1,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "rgba(0,0,0,0.3)", fontSize: "0.75rem", fontWeight: 600,
+              }}>
+                Foto
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
