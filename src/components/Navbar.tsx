@@ -13,7 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-const menuItems = [
+const BASE_MENU = [
   { label: "Home", path: "/" },
   { label: "Institucional", path: "/institucional" },
   { label: "Atividades", path: "/activities" },
@@ -21,10 +21,18 @@ const menuItems = [
   { label: "Comunidade", path: "/comunidade" },
 ];
 
+const ADMIN_MENU = [
+  { label: "Turmas", path: "/turmas" },
+  { label: "Mensagens SAC", path: "/sac-admin" },
+];
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, cargo } = useAuth();
+
+  const isGestorOuAdmin = cargo === "gestor" || cargo === "admin";
+  const menuItems = isGestorOuAdmin ? [...BASE_MENU, ...ADMIN_MENU] : BASE_MENU;
   // useTheme lê o tema atual do ThemeProvider pai (AccessibilityContext)
   const theme = useTheme();
   const primary = theme.palette.primary.main;

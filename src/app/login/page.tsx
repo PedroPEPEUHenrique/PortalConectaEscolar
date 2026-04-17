@@ -3,10 +3,9 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Box, Typography, TextField, Button, Divider, Alert, InputAdornment, IconButton } from "@mui/material";
+import { Box, Typography, TextField, Button, Alert, InputAdornment, IconButton } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import Link from "next/link";
 import { useColors } from "@/hooks/useColors";
 
 const MAX_TENTATIVAS = 5;
@@ -99,16 +98,10 @@ export default function Login() {
             {loading ? "Entrando..." : "Entrar"}
           </Button>
 
-          <Divider sx={{ my: 3, borderColor: "rgba(255,255,255,0.07)" }} />
-
-          <Button fullWidth variant="outlined" onClick={() => router.push("/cadastro")}
-            sx={{ py: 1.4, borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)", "&:hover": { borderColor: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.03)", color: "white" } }}>
-            Criar conta
-          </Button>
-
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-            <Link href="/recuperar-senha" style={{ color: primary, textDecoration: "none", fontSize: "0.85rem" }}>Esqueceu a senha?</Link>
-            <Link href="/alterar-senha" style={{ color: "rgba(255,255,255,0.35)", textDecoration: "none", fontSize: "0.85rem" }}>Alterar senha</Link>
+          <Box sx={{ mt: 3, textAlign: "center" }}>
+            <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.78rem" }}>
+              Acesso restrito. Contas são criadas pelo administrador.
+            </Typography>
           </Box>
         </Box>
       </Box>

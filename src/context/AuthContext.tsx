@@ -5,47 +5,56 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { useRouter, usePathname } from "next/navigation";
 
-// Definindo o que o nosso Contexto vai guardar
 type AuthContextType = {
   user: User | null;
+  cargo: string | null;
   loading: boolean;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, cargo: null, loading: true });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [cargo, setCargo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname(); // Descobre em qual URL o usuário está agora
+  const pathname = usePathname();
+
+  const fetchCargo = async (uid: string) => {
+    const { data } = await supabase
+      .from("perfis")
+      .select("cargo")
+      .eq("id", uid)
+      .single();
+    setCargo(data?.cargo?.toLowerCase().trim() ?? null);
+  };
 
   useEffect(() => {
-    // 1. Busca a sessão atual assim que o site carrega
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) await fetchCargo(u.id);
       setLoading(false);
     };
     getSession();
 
-    // 2. Fica "escutando" mudanças (ex: quando o usuário clica em Entrar ou Sair)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) await fetchCargo(u.id);
+      else setCargo(null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 3. A Lógica do "Segurança da Porta" (Proteção de Rotas)
   useEffect(() => {
     if (!loading) {
-      // Se NÃO tem usuário logado e ele NÃO está na tela de login, manda pro login
-      if (!user && pathname !== "/login" && pathname !== "/cadastro") {
+      if (!user && pathname !== "/login") {
         router.push("/login");
       }
-      
-      // Se TEM usuário logado e ele tentar voltar pra tela de login, manda pras atividades
       if (user && pathname === "/login") {
         router.push("/activities");
       }
@@ -53,11 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading, pathname, router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
-      {/* Exibe um carregamento rápido enquanto o Supabase verifica se o usuário existe,
-          evitando que a tela protegida "pisque" antes de mandar pro login */}
+    <AuthContext.Provider value={{ user, cargo, loading }}>
       {loading ? (
-        <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: '#0f172a', color: '#00ff99' }}>
+        <div style={{ display: "flex", height: "100vh", justifyContent: "center", alignItems: "center", background: "#0f172a", color: "#00ff99" }}>
           Carregando Portal...
         </div>
       ) : (
@@ -67,5 +74,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook personalizado para facilitar o uso em outras telas
 export const useAuth = () => useContext(AuthContext);
