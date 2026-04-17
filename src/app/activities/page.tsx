@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Box, Typography, Chip, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Avatar } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 type Atividade = { id: string; titulo: string; descricao: string; status: string; arquivo_pdf_url?: string };
 
@@ -16,24 +17,15 @@ const statusCores: Record<string, string> = {
 export default function Activities() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
 
+  const { cargo: userRole } = useAuth();
+
   const [atividades, setAtividades]   = useState<Atividade[]>([]);
   const [loading, setLoading]         = useState(true);
-  const [userRole, setUserRole]       = useState<string | null>(null);
   const [openModal, setOpenModal]     = useState(false);
   const [editandoId, setEditandoId]   = useState<string | null>(null);
   const [novaAtividade, setNova]      = useState({ titulo: "", descricao: "", status: "Pendente" });
   const [arquivoPDF, setPDF]          = useState<File | null>(null);
   const [salvando, setSalvando]       = useState(false);
-
-  const carregarPerfil = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase.from("perfis").select("cargo").eq("id", user.id).single();
-        if (data && !error) setUserRole(data.cargo.toLowerCase().trim());
-      }
-    } catch {}
-  };
 
   const buscarAtividades = async () => {
     try {
@@ -43,7 +35,7 @@ export default function Activities() {
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { carregarPerfil(); buscarAtividades(); }, []);
+  useEffect(() => { buscarAtividades(); }, []);
 
   const handleSalvar = async () => {
     if (!novaAtividade.titulo.trim() || !novaAtividade.descricao.trim()) return;

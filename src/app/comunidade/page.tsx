@@ -3,30 +3,21 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, Avatar, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 type Post = { id: string; autor: string; mensagem: string };
 
 export default function Comunidade() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
 
+  const { cargo: userRole } = useAuth();
+
   const [posts, setPosts]           = useState<Post[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [userRole, setUserRole]     = useState<string | null>(null);
   const [openModal, setOpenModal]   = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando]     = useState(false);
   const [novoPost, setNovoPost]     = useState({ autor: "", mensagem: "" });
-
-  const carregarPerfil = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase.from("perfis").select("cargo").eq("id", user.id).single();
-        if (data && !error) setUserRole(data.cargo.toLowerCase().trim());
-      }
-    } catch {}
-  };
 
   const buscarPosts = async () => {
     try {
@@ -36,7 +27,7 @@ export default function Comunidade() {
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { carregarPerfil(); buscarPosts(); }, []);
+  useEffect(() => { buscarPosts(); }, []);
 
   const handleSalvar = async () => {
     if (!novoPost.autor.trim() || !novoPost.mensagem.trim()) return;
