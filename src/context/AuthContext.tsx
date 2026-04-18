@@ -15,9 +15,22 @@ const AuthContext = createContext<AuthContextType>({ user: null, cargo: null, lo
 
 const CARGO_KEY = "pce_cargo";
 
+// Lê a sessão do Supabase direto do localStorage — síncrono, sem rede
+function lerSessaoCache(): User | null {
+  try {
+    const chave = Object.keys(localStorage).find(
+      (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+    );
+    if (!chave) return null;
+    const stored = JSON.parse(localStorage.getItem(chave) || "null");
+    if (stored?.user?.id) return stored.user as User;
+  } catch {}
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]     = useState<User | null>(null);
-  const [cargo, setCargo]   = useState<string | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
+  const [cargo, setCargo]     = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router   = useRouter();
   const pathname = usePathname();
@@ -33,31 +46,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Lê cargo do cache imediatamente — visitas repetidas ficam prontas sem esperar rede
-    try {
-      const cached = localStorage.getItem(CARGO_KEY);
-      if (cached) setCargo(cached);
-    } catch {}
+    // ── Passo 1: ler cache do localStorage (síncrono, instantâneo) ──
+    const cachedUser  = lerSessaoCache();
+    const cachedCargo = (() => { try { return localStorage.getItem(CARGO_KEY); } catch { return null; } })();
 
+    if (cachedUser) {
+      // Sessão encontrada no cache → mostra a UI imediatamente
+      setUser(cachedUser);
+      if (cachedCargo) setCargo(cachedCargo);
+      setLoading(false);
+    }
+
+    // ── Passo 2: validar com o servidor em background ──
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) {
-        const hasCached = (() => { try { return !!localStorage.getItem(CARGO_KEY); } catch { return false; } })();
-        if (hasCached) {
-          setLoading(false);       // desbloqueia UI imediatamente com o cache
-          fetchCargo(u.id);        // valida em background sem travar a tela
-        } else {
-          await fetchCargo(u.id);  // primeira visita: aguarda uma vez só
-          setLoading(false);
-        }
+
+      if (cachedUser) {
+        // Já exibiu a UI — apenas atualiza cargo em background
+        if (u) fetchCargo(u.id);
+        else persistCargo(null);
       } else {
-        persistCargo(null);
+        // Sem cache (primeira visita ou após logout)
+        if (u) await fetchCargo(u.id);
+        else persistCargo(null);
         setLoading(false);
       }
     });
 
-    // Escuta login/logout — ignora INITIAL_SESSION (já tratado acima)
+    // ── Passo 3: ouvir login/logout futuros (ignora INITIAL_SESSION) ──
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
       const u = session?.user ?? null;
@@ -80,7 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, cargo, loading }}>
       {loading ? (
-        <div style={{ display: "flex", height: "100vh", justifyContent: "center", alignItems: "center", background: "#0f172a", color: "#00ff99" }}>
+        <div style={{
+          display: "flex", height: "100vh",
+          justifyContent: "center", alignItems: "center",
+          background: "#0f172a", color: "#00ff99",
+        }}>
           Carregando Portal...
         </div>
       ) : (
