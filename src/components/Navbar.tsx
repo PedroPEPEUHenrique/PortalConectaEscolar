@@ -60,12 +60,11 @@ export default function Navbar() {
     setLoadingCarteirinha(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose();
-    // Limpa cache local imediatamente — UI reage na hora
-    try { localStorage.removeItem("pce_cargo"); } catch {}
-    // Revoga sessão no servidor em background (não bloqueia a navegação)
-    supabase.auth.signOut().catch(() => {});
+    // signOut() limpa o sb-...-auth-token do localStorage antes de retornar,
+    // garantindo que lerSessaoCache() não encontre sessão antiga na página de login
+    await supabase.auth.signOut();
     router.push("/login");
   };
 

@@ -15,7 +15,6 @@ const AuthContext = createContext<AuthContextType>({ user: null, cargo: null, lo
 
 const CARGO_KEY = "pce_cargo";
 
-// Lê sessão do Supabase direto do localStorage — zero rede, síncrono
 function lerSessaoCache(): User | null {
   try {
     const chave = Object.keys(localStorage).find(
@@ -26,6 +25,10 @@ function lerSessaoCache(): User | null {
     if (stored?.user?.id) return stored.user as User;
   } catch {}
   return null;
+}
+
+function lerCargoCache(): string | null {
+  try { return localStorage.getItem(CARGO_KEY); } catch { return null; }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -47,27 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const cachedUser  = lerSessaoCache();
-    const cachedCargo = (() => { try { return localStorage.getItem(CARGO_KEY); } catch { return null; } })();
+    const cachedCargo = lerCargoCache();
 
-    if (cachedUser) {
-      // ── Sessão em cache: desbloqueia UI imediatamente ──
+    if (cachedUser && cachedCargo) {
+      // Tudo em cache → UI instantânea, cargo disponível imediatamente
       setUser(cachedUser);
-      if (cachedCargo) setCargo(cachedCargo);
+      setCargo(cachedCargo);
       setLoading(false);
-
-      // Busca cargo fresco em background usando o user.id já conhecido
-      // (o SDK do Supabase renova o token automaticamente se necessário)
+      // Atualiza cargo e valida sessão em background
       fetchCargo(cachedUser.id);
-
-      // Valida sessão em background para detectar logout remoto / token revogado
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session?.user) {
-          persistCargo(null);
-          setUser(null);
-        }
+        if (!session?.user) { persistCargo(null); setUser(null); }
       });
     } else {
-      // ── Sem sessão em cache: primeira visita ou após logout ──
+      // Sem cache completo: aguarda uma vez (primeira visita ou após logout)
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         const u = session?.user ?? null;
         setUser(u);
@@ -77,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // Ouve login/logout futuros (ignora INITIAL_SESSION — já tratado acima)
+    // Ouve login / logout — ignora INITIAL_SESSION (tratado acima)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
       const u = session?.user ?? null;
