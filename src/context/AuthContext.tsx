@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType>({ user: null, cargo: null, lo
 
 const CARGO_KEY = "pce_cargo";
 
-// Lê a sessão do Supabase direto do localStorage — síncrono, sem rede
+// Lê sessão do Supabase direto do localStorage — síncrono, zero rede
 function lerSessaoCache(): User | null {
   try {
     const chave = Object.keys(localStorage).find(
@@ -46,35 +46,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // ── Passo 1: ler cache do localStorage (síncrono, instantâneo) ──
     const cachedUser  = lerSessaoCache();
     const cachedCargo = (() => { try { return localStorage.getItem(CARGO_KEY); } catch { return null; } })();
 
-    if (cachedUser) {
-      // Sessão encontrada no cache → mostra a UI imediatamente
+    if (cachedUser && cachedCargo) {
+      // ── Visita repetida: tudo em cache → UI instantânea ──
       setUser(cachedUser);
-      if (cachedCargo) setCargo(cachedCargo);
+      setCargo(cachedCargo);
       setLoading(false);
-    }
-
-    // ── Passo 2: validar com o servidor em background ──
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-
-      if (cachedUser) {
-        // Já exibiu a UI — apenas atualiza cargo em background
-        if (u) fetchCargo(u.id);
-        else persistCargo(null);
-      } else {
-        // Sem cache (primeira visita ou após logout)
+      // Valida sessão e atualiza cargo em background, sem travar a tela
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) fetchCargo(session.user.id);
+        else { persistCargo(null); setUser(null); }
+      });
+    } else {
+      // ── Primeira visita ou sem cache: aguarda sessão + cargo uma vez ──
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        const u = session?.user ?? null;
+        setUser(u);
         if (u) await fetchCargo(u.id);
         else persistCargo(null);
         setLoading(false);
-      }
-    });
+      });
+    }
 
-    // ── Passo 3: ouvir login/logout futuros (ignora INITIAL_SESSION) ──
+    // Ouve login/logout (ignora INITIAL_SESSION — já tratado acima)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
       const u = session?.user ?? null;

@@ -60,9 +60,12 @@ export default function Navbar() {
     setLoadingCarteirinha(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     handleClose();
+    // Limpa cache local imediatamente — UI reage na hora
+    try { localStorage.removeItem("pce_cargo"); } catch {}
+    // Revoga sessão no servidor em background (não bloqueia a navegação)
+    supabase.auth.signOut().catch(() => {});
     router.push("/login");
   };
 
