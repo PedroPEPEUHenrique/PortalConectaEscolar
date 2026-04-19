@@ -1,46 +1,38 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-// 🟡 PUT: Atualiza (Edita) um evento existente
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    
-    const { data: dataEvento, evento, tipo } = body;
+const UpdateSchema = z.object({
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  evento: z.string().min(1).max(300).optional(),
+  tipo: z.string().max(50).optional(),
+});
+const UUID = z.string().uuid();
+const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
-    const { data, error } = await supabase
-      .from("eventos")
-      .update({ data: dataEvento, evento, tipo })
-      .eq("id", id)
-      .select();
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
-    if (error) {
-      return NextResponse.json({ erro: error.message }, { status: 400 });
-    }
+  const body = await request.json();
+  // Suporte ao campo "data" enviado como "dataEvento" pelo frontend
+  const normalized = { data: body.dataEvento ?? body.data, evento: body.evento, tipo: body.tipo };
+  const parsed = UpdateSchema.safeParse(normalized);
+  if (!parsed.success)
+    return NextResponse.json({ erro: "Dados inválidos" }, { status: 422, headers: sec });
 
-    return NextResponse.json(data[0], { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ erro: "Erro interno no servidor ao atualizar evento" }, { status: 500 });
-  }
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.from("eventos").update(parsed.data).eq("id", id).select();
+  if (error || !data?.length) return NextResponse.json({ erro: "Falha ao atualizar" }, { status: 400, headers: sec });
+  return NextResponse.json(data[0], { headers: sec });
 }
 
-// 🔴 DELETE: Exclui um evento
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
-    const { error } = await supabase
-      .from("eventos")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ erro: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ mensagem: "Evento excluído com sucesso!" }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ erro: "Erro interno no servidor ao excluir evento" }, { status: 500 });
-  }
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from("eventos").delete().eq("id", id);
+  if (error) return NextResponse.json({ erro: "Falha ao excluir" }, { status: 400, headers: sec });
+  return NextResponse.json({ mensagem: "Excluído com sucesso" }, { headers: sec });
 }

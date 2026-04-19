@@ -1,178 +1,114 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Box, Typography, TextField, Button, MenuItem, CircularProgress
-} from "@mui/material";
+import { Box, Typography, TextField, Button, MenuItem, CircularProgress, Alert } from "@mui/material";
+import { useColors } from "@/hooks/useColors";
 
-import { supabase } from "@/lib/supabase";
+const TIPOS = ["Elogio", "Sugestão", "Reclamação", "Problema Técnico"];
 
 export default function Feedback() {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [tipo, setTipo] = useState("");
+  const { primary, bg, paper, btnPrimary, btnOutlined, inputStyle } = useColors();
+
+  const [nome, setNome]         = useState("");
+  const [email, setEmail]       = useState("");
+  const [tipo, setTipo]         = useState("");
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [enviadoSucesso, setEnviadoSucesso] = useState(false);
-
-  // Estilo padronizado para os campos de texto no tema Dark
-  const textFieldEstilo = {
-    "& .MuiOutlinedInput-root": { 
-      color: "white",
-      "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-      "&:hover fieldset": { borderColor: "rgba(0,255,153,0.5)" },
-      "&.Mui-focused fieldset": { borderColor: "#00ff99" }
-    },
-    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-    "& .MuiInputLabel-root.Mui-focused": { color: "#00ff99" }
-  };
+  const [sucesso, setSucesso]   = useState(false);
+  const [erro, setErro]         = useState<string | null>(null);
 
   const handleEnviar = async (anonimo: boolean) => {
-    // Validação básica se não for anônimo
-    if (!anonimo && (!nome || !email)) {
-      alert("Por favor, preencha nome e e-mail, ou escolha o envio anônimo.");
+    setErro(null);
+    if (!anonimo && (!nome.trim() || !email.trim())) {
+      setErro("Preencha nome e e-mail, ou escolha envio anônimo.");
       return;
     }
-    if (!tipo || !mensagem) {
-      alert("Por favor, escolha o tipo de feedback e digite a mensagem.");
+    if (!tipo || !mensagem.trim()) {
+      setErro("Escolha o tipo de feedback e escreva a mensagem.");
       return;
     }
 
     setEnviando(true);
-
     try {
-      // Prepara os dados. Se for anônimo, envia strings fixas.
-      const dadosEnvio = {
-        nome: anonimo ? "Anônimo" : nome,
-        email: anonimo ? "nao-informado@anonimo.com" : email,
-        tipo: tipo,
-        mensagem: mensagem
+      const payload = {
+        nome:     anonimo ? "Anônimo" : nome.trim(),
+        email:    anonimo ? "anonimo@portal.com" : email.trim(),
+        tipo,
+        mensagem: mensagem.trim(),
       };
 
-      // Insere direto no Supabase (pode ser substituído pela API depois)
-      const { error } = await supabase
-        .from('feedbacks')
-        .insert([dadosEnvio]);
+      const res = await fetch("/api/feedbacks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.erro ?? "Erro ao enviar");
+      }
 
-      setEnviadoSucesso(true);
-      
-      // Limpa os campos
-      setNome("");
-      setEmail("");
-      setTipo("");
-      setMensagem("");
-
-      // Faz a mensagem de sucesso sumir depois de 5 segundos
-      setTimeout(() => setEnviadoSucesso(false), 5000);
-
-    } catch (error) {
-      console.error("Erro ao enviar feedback", error);
-      alert("Ocorreu um erro ao enviar seu feedback. Tente novamente.");
+      setSucesso(true);
+      setNome(""); setEmail(""); setTipo(""); setMensagem("");
+      setTimeout(() => setSucesso(false), 6000);
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : "Erro ao enviar feedback. Tente novamente.");
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "#0f172a",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: 3,
-        pt: 10,
-        pb: 10
-      }}
-    >
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: "600px",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(0,255,153,0.4)",
-          borderRadius: 1,
-          p: 6,
-          backdropFilter: "blur(14px)",
-          boxShadow: "0 0 40px rgba(0,255,153,0.15)",
-        }}
-      >
-        <Typography variant="h4" fontWeight="bold" mb={1} textAlign="center" color="white">
+    <Box sx={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", px: 3, pt: 10, pb: 10 }}>
+      <Box sx={{
+        width: "100%", maxWidth: 600,
+        background: "rgba(255,255,255,0.03)",
+        border: `1px solid ${primary}44`,
+        borderRadius: 3, p: { xs: 4, md: 6 },
+      }}>
+        <Typography variant="h4" fontWeight={700} mb={1} textAlign="center" sx={{ color: "white" }}>
           Enviar Feedback
         </Typography>
-        
-        <Typography variant="body2" mb={4} textAlign="center" sx={{ color: "rgba(255,255,255,0.6)" }}>
-          Sua opinião é importante. Escolha se deseja se identificar ou enviar de forma anônima. Apenas a Gestão terá acesso a esta mensagem.
+        <Typography variant="body2" mb={4} textAlign="center" sx={{ color: "rgba(255,255,255,0.5)" }}>
+          Sua opinião é importante. Apenas a Gestão terá acesso a esta mensagem.
         </Typography>
 
-        {enviadoSucesso ? (
-          <Box sx={{ p: 4, textAlign: "center", background: "rgba(0,255,153,0.1)", borderRadius: 1, border: "1px solid #00ff99" }}>
-            <Typography variant="h6" color="#00ff99" fontWeight="bold">
-              Feedback enviado com sucesso!
-            </Typography>
-            <Typography variant="body2" color="white" mt={1}>
-              A gestão escolar já recebeu sua mensagem. Agradecemos a colaboração.
+        {sucesso ? (
+          <Box sx={{ p: 4, textAlign: "center", background: `${primary}15`, borderRadius: 2, border: `1px solid ${primary}` }}>
+            <Typography variant="h6" fontWeight={700} sx={{ color: primary }}>Feedback enviado com sucesso!</Typography>
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mt: 1 }}>
+              A gestão escolar já recebeu sua mensagem. Obrigado pela colaboração.
             </Typography>
           </Box>
         ) : (
           <>
-            <TextField
-              fullWidth label="Nome" margin="normal" variant="outlined"
-              value={nome} onChange={(e) => setNome(e.target.value)}
-              sx={textFieldEstilo}
-            />
+            {erro && (
+              <Alert severity="error" sx={{ mb: 3, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5", "& .MuiAlert-icon": { color: "#f87171" } }}>
+                {erro}
+              </Alert>
+            )}
 
-            <TextField
-              fullWidth label="Email" margin="normal" variant="outlined" type="email"
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              sx={textFieldEstilo}
-            />
+            <TextField fullWidth label="Nome" margin="normal" value={nome}
+              onChange={e => setNome(e.target.value)} inputProps={{ maxLength: 100 }} sx={inputStyle} />
 
-            <TextField
-              select fullWidth label="Tipo de Feedback" margin="normal" variant="outlined"
-              value={tipo} onChange={(e) => setTipo(e.target.value)}
-              sx={{ ...textFieldEstilo, "& .MuiSelect-icon": { color: "rgba(255,255,255,0.7)" } }}
-            >
-              <MenuItem value="Elogio">Elogio</MenuItem>
-              <MenuItem value="Sugestão">Sugestão</MenuItem>
-              <MenuItem value="Reclamação">Reclamação</MenuItem>
-              <MenuItem value="Problema Técnico">Problema Técnico</MenuItem>
+            <TextField fullWidth label="E-mail" type="email" margin="normal" value={email}
+              onChange={e => setEmail(e.target.value)} inputProps={{ maxLength: 254 }} sx={inputStyle} />
+
+            <TextField select fullWidth label="Tipo de Feedback" margin="normal" value={tipo}
+              onChange={e => setTipo(e.target.value)} sx={inputStyle}
+              SelectProps={{ MenuProps: { PaperProps: { sx: { background: paper, color: "white" } } } }}>
+              {TIPOS.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
 
-            <TextField
-              fullWidth label="Mensagem" multiline rows={4} margin="normal" variant="outlined"
-              value={mensagem} onChange={(e) => setMensagem(e.target.value)}
-              sx={textFieldEstilo}
-            />
+            <TextField fullWidth label="Mensagem" multiline rows={4} margin="normal" value={mensagem}
+              onChange={e => setMensagem(e.target.value)} inputProps={{ maxLength: 2000 }} sx={inputStyle} />
 
             <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
-              <Button
-                fullWidth variant="contained"
-                disabled={enviando}
-                onClick={() => handleEnviar(false)}
-                sx={{
-                  background: "#00ff99", color: "#0f172a", fontWeight: "bold", borderRadius: 3,
-                  "&:hover": { boxShadow: "0 0 30px rgba(0,255,153,0.8)", background: "#00e68a" },
-                  "&.Mui-disabled": { background: "rgba(0,255,153,0.3)" }
-                }}
-              >
-                {enviando ? <CircularProgress size={24} sx={{ color: "#0f172a" }} /> : "Enviar Identificado"}
+              <Button fullWidth variant="contained" disabled={enviando} onClick={() => handleEnviar(false)} sx={btnPrimary}>
+                {enviando ? <CircularProgress size={22} sx={{ color: "inherit" }} /> : "Enviar Identificado"}
               </Button>
-
-              <Button
-                fullWidth variant="outlined"
-                disabled={enviando}
-                onClick={() => handleEnviar(true)}
-                sx={{
-                  borderColor: "#00ff99", color: "#00ff99", fontWeight: "bold", borderRadius: 3,
-                  "&:hover": { background: "rgba(0,255,153,0.1)", borderColor: "#00ff99" },
-                  "&.Mui-disabled": { borderColor: "rgba(0,255,153,0.3)", color: "rgba(0,255,153,0.3)" }
-                }}
-              >
-                {enviando ? <CircularProgress size={24} sx={{ color: "#00ff99" }} /> : "Enviar Anônimo"}
+              <Button fullWidth variant="outlined" disabled={enviando} onClick={() => handleEnviar(true)} sx={btnOutlined}>
+                {enviando ? <CircularProgress size={22} sx={{ color: "inherit" }} /> : "Enviar Anônimo"}
               </Button>
             </Box>
           </>

@@ -1,26 +1,32 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
-  );
-}
+const FeedbackSchema = z.object({
+  nome: z.string().min(1).max(100),
+  email: z.string().email().max(254),
+  tipo: z.enum(["Elogio", "Sugestão", "Reclamação", "Problema Técnico"]),
+  mensagem: z.string().min(1).max(2000),
+});
 
-const secHeaders = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
+const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
 export async function GET() {
-  try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from("feedbacks")
-      .select("id, nome, email, tipo, mensagem, created_at")
-      .order("created_at", { ascending: false });
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.from("feedbacks")
+    .select("id, nome, email, tipo, mensagem, created_at")
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ erro: "Falha ao buscar feedbacks" }, { status: 400, headers: sec });
+  return NextResponse.json(data, { headers: sec });
+}
 
-    if (error) return NextResponse.json({ erro: "Falha ao buscar feedbacks" }, { status: 400, headers: secHeaders });
-    return NextResponse.json(data, { status: 200, headers: secHeaders });
-  } catch {
-    return NextResponse.json({ erro: "Erro interno" }, { status: 500, headers: secHeaders });
-  }
+export async function POST(request: NextRequest) {
+  const parsed = FeedbackSchema.safeParse(await request.json());
+  if (!parsed.success)
+    return NextResponse.json({ erro: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, { status: 422, headers: sec });
+
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from("feedbacks").insert([parsed.data]);
+  if (error) return NextResponse.json({ erro: "Falha ao enviar feedback" }, { status: 400, headers: sec });
+  return NextResponse.json({ mensagem: "Feedback enviado com sucesso" }, { status: 201, headers: sec });
 }
