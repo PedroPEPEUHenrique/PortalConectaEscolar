@@ -1,121 +1,152 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+  createContext, useContext, useState, useMemo,
+  useEffect, useCallback,
+} from "react";
 import { createTheme, ThemeProvider, CssBaseline } from "@mui/material";
 
-type ColorMode = "padrao" | "daltonismo-verde-vermelho" | "monocromatico" | "alto-contraste";
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+export type ColorMode =
+  | "padrao"
+  | "daltonismo-verde-vermelho"
+  | "monocromatico"
+  | "alto-contraste";
 
 type AccessibilityContextType = {
-  fontSizeModifier: number;
-  aumentarFonte: () => void;
-  diminuirFonte: () => void;
-  resetarFonte: () => void;
-  colorMode: ColorMode;
-  setColorMode: (mode: ColorMode) => void;
-  lupaAtiva: boolean;
-  toggleLupa: () => void;
-  reducaoMovimento: boolean;
+  fontSizeModifier:       number;
+  aumentarFonte:          () => void;
+  diminuirFonte:          () => void;
+  resetarFonte:           () => void;
+  colorMode:              ColorMode;
+  setColorMode:           (mode: ColorMode) => void;
+  reducaoMovimento:       boolean;
   toggleReducaoMovimento: () => void;
-  resetarTudo: () => void;
+  resetarTudo:            () => void;
 };
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
+
+// Chave do localStorage onde as preferências são salvas
 const STORAGE_KEY = "portal-escolar-acessibilidade";
 
+// ─── Helpers de persistência ──────────────────────────────────────────────────
+
+/** Salva as preferências de acessibilidade no localStorage */
 function salvarPreferencias(prefs: object) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch {}
 }
+
+/** Carrega as preferências salvas ou retorna null se não existirem */
 function carregarPreferencias() {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
-  const [fontSizeModifier, setFontSizeModifier] = useState(14);
-  const [colorMode, setColorModeState] = useState<ColorMode>("padrao");
-  const [lupaAtiva, setLupaAtiva] = useState(false);
-  const [reducaoMovimento, setReducaoMovimento] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+// ─── Paletas de cor por modo ──────────────────────────────────────────────────
 
+const PALETAS: Record<ColorMode, { primary: string; secondary: string; bg: string; paper: string }> = {
+  padrao:                      { primary: "#00c77a", secondary: "#00b4d8", bg: "#0f172a", paper: "#111827" },
+  "daltonismo-verde-vermelho": { primary: "#ffd700", secondary: "#0055ff", bg: "#0f172a", paper: "#111827" },
+  monocromatico:               { primary: "#ffffff", secondary: "#cccccc", bg: "#0a0a0a", paper: "#1a1a1a" },
+  "alto-contraste":            { primary: "#ffff00", secondary: "#ff6600", bg: "#000000", paper: "#111111" },
+};
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
+  const [fontSizeModifier,  setFontSizeModifier]  = useState(14);
+  const [colorMode,         setColorModeState]    = useState<ColorMode>("padrao");
+  const [reducaoMovimento,  setReducaoMovimento]  = useState(false);
+  // hydrated evita sobrescrever o estado padrão com undefined antes do localStorage ser lido
+  const [hydrated,          setHydrated]          = useState(false);
+
+  // Carrega preferências salvas na primeira montagem (após hidratação do cliente)
   useEffect(() => {
     const salvas = carregarPreferencias();
     if (salvas) {
-      if (salvas.fontSizeModifier) setFontSizeModifier(salvas.fontSizeModifier);
-      if (salvas.colorMode) setColorModeState(salvas.colorMode);
+      if (salvas.fontSizeModifier)                    setFontSizeModifier(salvas.fontSizeModifier);
+      if (salvas.colorMode)                           setColorModeState(salvas.colorMode);
       if (typeof salvas.reducaoMovimento === "boolean") setReducaoMovimento(salvas.reducaoMovimento);
     }
     setHydrated(true);
   }, []);
 
+  // Persiste preferências sempre que alguma muda (somente após hidratação)
   useEffect(() => {
     if (!hydrated) return;
     salvarPreferencias({ fontSizeModifier, colorMode, reducaoMovimento });
   }, [fontSizeModifier, colorMode, reducaoMovimento, hydrated]);
 
+  // Aplica / remove a classe CSS de redução de animações no <html>
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reducaoMovimento);
   }, [reducaoMovimento]);
 
+  // Aplica o tamanho de fonte globalmente via CSS var no <html>
+  // Isso garante que rem/em de TODAS as páginas respondam ao widget
   useEffect(() => {
     document.documentElement.style.fontSize = fontSizeModifier + "px";
   }, [fontSizeModifier]);
 
+  // ─── Ações memoizadas (evitam re-renders desnecessários nos consumidores) ───
+
+  /** Aumenta o tamanho da fonte em 2px até o máximo de 22px */
   const aumentarFonte = useCallback(() => setFontSizeModifier(p => Math.min(p + 2, 22)), []);
+  /** Diminui o tamanho da fonte em 2px até o mínimo de 12px */
   const diminuirFonte = useCallback(() => setFontSizeModifier(p => Math.max(p - 2, 12)), []);
-  const resetarFonte = useCallback(() => setFontSizeModifier(14), []);
-  const toggleLupa = useCallback(() => setLupaAtiva(p => !p), []);
+  /** Retorna o tamanho da fonte ao padrão (14px) */
+  const resetarFonte  = useCallback(() => setFontSizeModifier(14), []);
+
   const toggleReducaoMovimento = useCallback(() => setReducaoMovimento(p => !p), []);
   const setColorMode = useCallback((mode: ColorMode) => setColorModeState(mode), []);
+
+  /** Restaura todas as configurações de acessibilidade ao padrão e limpa o localStorage */
   const resetarTudo = useCallback(() => {
     setFontSizeModifier(14);
     setColorModeState("padrao");
-    setLupaAtiva(false);
     setReducaoMovimento(false);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);
 
+  // ─── Tema MUI dinâmico ────────────────────────────────────────────────────
+  // Recriado apenas quando colorMode ou fontSizeModifier mudam (memoizado)
   const theme = useMemo(() => {
-    // Paletas por modo de cor
-    const paletas: Record<ColorMode, { primary: string; secondary: string; bg: string; paper: string }> = {
-      padrao:                      { primary: "#00c77a", secondary: "#00b4d8", bg: "#0f172a", paper: "#111827" },
-      "daltonismo-verde-vermelho": { primary: "#ffd700", secondary: "#0055ff", bg: "#0f172a", paper: "#111827" },
-      monocromatico:               { primary: "#ffffff", secondary: "#cccccc", bg: "#0a0a0a", paper: "#1a1a1a" },
-      "alto-contraste":            { primary: "#ffff00", secondary: "#ff6600", bg: "#000000", paper: "#111111" },
-    };
-    const p = paletas[colorMode];
-
+    const p = PALETAS[colorMode];
     return createTheme({
       typography: {
-        fontSize: fontSizeModifier,
-        // Inclusive Sans em todo o sistema via MUI
+        fontSize:   fontSizeModifier,
         fontFamily: "'Inclusive Sans', sans-serif",
+        // Garante a fonte em todos os variants tipográficos do MUI
         h1: { fontFamily: "'Inclusive Sans', sans-serif" },
         h2: { fontFamily: "'Inclusive Sans', sans-serif" },
         h3: { fontFamily: "'Inclusive Sans', sans-serif" },
         h4: { fontFamily: "'Inclusive Sans', sans-serif" },
         h5: { fontFamily: "'Inclusive Sans', sans-serif" },
         h6: { fontFamily: "'Inclusive Sans', sans-serif" },
-        body1: { fontFamily: "'Inclusive Sans', sans-serif" },
-        body2: { fontFamily: "'Inclusive Sans', sans-serif" },
+        body1:  { fontFamily: "'Inclusive Sans', sans-serif" },
+        body2:  { fontFamily: "'Inclusive Sans', sans-serif" },
         button: { fontFamily: "'Inclusive Sans', sans-serif" },
       },
       palette: {
-        mode: "dark",
-        primary: { main: p.primary },
-        secondary: { main: p.secondary },
+        mode:       "dark",
+        primary:    { main: p.primary },
+        secondary:  { main: p.secondary },
         background: { default: p.bg, paper: p.paper },
       },
       components: {
         MuiCssBaseline: {
           styleOverrides: {
-            // Aplica a fonte e o background global via CssBaseline
             "html, body": {
-              fontFamily: "'Inclusive Sans', sans-serif !important",
+              fontFamily:      "'Inclusive Sans', sans-serif !important",
               backgroundColor: p.bg,
             },
-            // Redução de animações global
             ".reduce-motion *": {
               transition: "none !important",
-              animation: "none !important",
+              animation:  "none !important",
             },
           },
         },
@@ -133,10 +164,20 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
 
   return (
     <AccessibilityContext.Provider
-      value={{ fontSizeModifier, aumentarFonte, diminuirFonte, resetarFonte, colorMode, setColorMode, lupaAtiva, toggleLupa, reducaoMovimento, toggleReducaoMovimento, resetarTudo }}
+      value={{
+        fontSizeModifier,
+        aumentarFonte,
+        diminuirFonte,
+        resetarFonte,
+        colorMode,
+        setColorMode,
+        reducaoMovimento,
+        toggleReducaoMovimento,
+        resetarTudo,
+      }}
     >
       <ThemeProvider theme={theme}>
-        {/* CssBaseline aplica o background e a fonte globalmente */}
+        {/* CssBaseline aplica o reset de CSS e o background/fonte globalmente */}
         <CssBaseline />
         {children}
       </ThemeProvider>
@@ -144,6 +185,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   );
 }
 
+/** Hook para consumir o contexto de acessibilidade em qualquer componente */
 export function useAccessibility() {
   const context = useContext(AccessibilityContext);
   if (!context) throw new Error("useAccessibility deve ser usado dentro de um AccessibilityProvider");
