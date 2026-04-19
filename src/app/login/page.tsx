@@ -52,7 +52,7 @@ export default function Login() {
         width: "100%", maxWidth: 920,
         background: "rgba(255,255,255,0.02)",
         border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 3, overflow: "hidden",
+        borderRadius: 2, overflow: "hidden",
         display: "flex", flexDirection: { xs: "column", md: "row" },
       }}>
         {/* Lado esquerdo */}

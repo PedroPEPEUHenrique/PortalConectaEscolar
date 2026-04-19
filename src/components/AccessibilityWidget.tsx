@@ -135,9 +135,13 @@ export default function AccessibilityWidget() {
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        {/* Ícone de pessoa acessibilidade (SVG inline para não depender de lib) */}
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0 6c1.1 0 2 .9 2 2v4l1.5 3H16v1h-4v-1h.5l-1-2.5V14h-1v3.5L9.5 20H10v1H6v-1h.5L8 17V10c0-1.1.9-2 2-2z"/>
+        {/* Ícone stickman inspirado no Ionicons body-outline */}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="3.5" r="2" />
+          <line x1="12" y1="5.5" x2="12" y2="13" />
+          <line x1="7" y1="9" x2="17" y2="9" />
+          <line x1="12" y1="13" x2="9" y2="21" />
+          <line x1="12" y1="13" x2="15" y2="21" />
         </svg>
       </button>
 

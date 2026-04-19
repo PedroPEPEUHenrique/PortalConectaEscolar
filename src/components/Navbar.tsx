@@ -231,7 +231,7 @@ export default function Navbar() {
                       border:     `1px solid ${primary}22`,
                       color:      "white",
                       minWidth:   200,
-                      borderRadius: 2,
+                      borderRadius: 1,
                       boxShadow:  "0 8px 32px rgba(0,0,0,0.5)",
                       fontFamily: "'Inclusive Sans', sans-serif",
                     },
@@ -309,7 +309,7 @@ export default function Navbar() {
           sx: {
             background:   bg,
             border:       `1px solid ${primary}22`,
-            borderRadius: 3,
+            borderRadius: 2,
             color:        "white",
             maxWidth:     440,
             width:        "100%",

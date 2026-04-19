@@ -63,7 +63,7 @@ export default function Feedback() {
         width: "100%", maxWidth: 600,
         background: "rgba(255,255,255,0.03)",
         border: `1px solid ${primary}44`,
-        borderRadius: 3, p: { xs: 4, md: 6 },
+        borderRadius: 2, p: { xs: 4, md: 6 },
       }}>
         <Typography variant="h4" fontWeight={700} mb={1} textAlign="center" sx={{ color: "white" }}>
           Enviar Feedback
@@ -73,7 +73,7 @@ export default function Feedback() {
         </Typography>
 
         {sucesso ? (
-          <Box sx={{ p: 4, textAlign: "center", background: `${primary}15`, borderRadius: 2, border: `1px solid ${primary}` }}>
+          <Box sx={{ p: 4, textAlign: "center", background: `${primary}15`, borderRadius: 1, border: `1px solid ${primary}` }}>
             <Typography variant="h6" fontWeight={700} sx={{ color: primary }}>Feedback enviado com sucesso!</Typography>
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)", mt: 1 }}>
               A gestão escolar já recebeu sua mensagem. Obrigado pela colaboração.

@@ -121,7 +121,7 @@ export default function SacAdminPage() {
               sx={{
                 background: paper,
                 border: "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 2,
+                borderRadius: "4px",
                 p: 3,
                 display: "flex",
                 flexDirection: "column",

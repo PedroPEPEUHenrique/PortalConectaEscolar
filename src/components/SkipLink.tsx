@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Link de acessibilidade que fica oculto até receber foco via teclado.
+ * Permite que usuários de teclado/leitor de tela pulem direto para o conteúdo
+ * principal, ignorando a barra de navegação.
+ */
 export default function SkipLink() {
   return (
     <a
@@ -13,12 +18,12 @@ export default function SkipLink() {
         padding: "10px 20px",
         fontWeight: 700,
         zIndex: 99999,
-        borderRadius: "0 0 8px 0",
+        borderRadius: "0 0 6px 0",
         transition: "top 0.2s",
         textDecoration: "none",
       }}
       onFocus={(e) => { e.currentTarget.style.top = "0"; }}
-      onBlur={(e) => { e.currentTarget.style.top = "-100px"; }}
+      onBlur={(e)  => { e.currentTarget.style.top = "-100px"; }}
     >
       Pular para o conteúdo principal
     </a>

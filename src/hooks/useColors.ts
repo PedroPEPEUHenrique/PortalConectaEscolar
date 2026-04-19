@@ -63,7 +63,7 @@ export function useColors() {
       background:  paper,
       border:      "1px solid rgba(255,255,255,0.08)",
       color:       textMain,
-      borderRadius: 1,
+      borderRadius: "4px",
       fontFamily:  "'Inclusive Sans', sans-serif",
     },
   };

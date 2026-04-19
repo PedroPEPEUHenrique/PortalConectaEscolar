@@ -35,7 +35,7 @@ export default function Home() {
           <Box key={item.link} sx={{
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 1, p: 3.5,
+            borderRadius: "4px", p: 3.5,
             display: "flex", flexDirection: "column", gap: 2,
             transition: "border-color 0.2s, background 0.2s",
             "&:hover": { borderColor: `${primary}44`, background: `${primary}06` },
