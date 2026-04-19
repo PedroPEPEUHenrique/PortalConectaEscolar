@@ -6,6 +6,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
 type Post = {
@@ -27,51 +28,41 @@ export default function Comunidade() {
   const [salvando,   setSalvando]   = useState(false);
   const [form,       setForm]       = useState(FORM_VAZIO);
 
-  // Apenas gestor e admin podem publicar / editar / excluir avisos
   const podeGerenciar = userRole === "gestor" || userRole === "admin";
 
-  /** Busca todos os avisos da API e atualiza o estado */
   const buscarPosts = useCallback(async () => {
-    try {
-      const res   = await fetch("/api/comunidade");
-      const dados = await res.json();
-      if (res.ok) setPosts(dados);
-    } catch {
-      // silencia erros de rede
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase
+      .from("comunidade")
+      .select("id, autor, mensagem, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (!error && data) setPosts(data as Post[]);
+    setLoading(false);
   }, []);
 
   useEffect(() => { buscarPosts(); }, [buscarPosts]);
 
-  /** Cria ou atualiza um aviso via POST/PUT na API */
   const handleSalvar = async () => {
     if (!form.autor.trim() || !form.mensagem.trim()) return;
     setSalvando(true);
     try {
-      const url    = editandoId ? `/api/comunidade/${editandoId}` : "/api/comunidade";
-      const method = editandoId ? "PUT" : "POST";
-      const res    = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(form),
-      });
-      if (res.ok) {
-        buscarPosts();
-        fecharModal();
+      const payload = { autor: form.autor.trim(), mensagem: form.mensagem.trim() };
+
+      if (editandoId) {
+        const { error } = await supabase.from("comunidade").update(payload).eq("id", editandoId);
+        if (error) { alert("Erro ao atualizar: " + error.message); return; }
       } else {
-        const err = await res.json();
-        alert("Erro: " + (err.erro ?? JSON.stringify(err)));
+        const { error } = await supabase.from("comunidade").insert([payload]);
+        if (error) { alert("Erro ao publicar: " + error.message); return; }
       }
-    } catch {
-      // erro de rede
+
+      await buscarPosts();
+      fecharModal();
     } finally {
       setSalvando(false);
     }
   };
 
-  /** Preenche o formulário com os dados do aviso selecionado para edição */
   const handleEditar = (id: string) => {
     const p = posts.find(x => x.id === id);
     if (!p) return;
@@ -80,15 +71,13 @@ export default function Comunidade() {
     setOpenModal(true);
   };
 
-  /** Solicita confirmação e exclui o aviso via DELETE na API */
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Confirma exclusão deste aviso?")) return;
-    const res = await fetch(`/api/comunidade/${id}`, { method: "DELETE" });
-    if (res.ok) buscarPosts();
-    else alert("Erro ao excluir aviso.");
+    const { error } = await supabase.from("comunidade").delete().eq("id", id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    buscarPosts();
   };
 
-  /** Fecha e reseta o modal de criação/edição */
   const fecharModal = () => {
     setOpenModal(false);
     setEditandoId(null);
@@ -98,7 +87,6 @@ export default function Comunidade() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
 
-      {/* Cabeçalho da página */}
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", mb: 6, gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 0.5 }}>
@@ -109,13 +97,12 @@ export default function Comunidade() {
           </Typography>
         </Box>
         {podeGerenciar && (
-          <Button variant="contained" onClick={() => setOpenModal(true)} sx={btnPrimary}>
+          <Button variant="contained" onClick={() => { fecharModal(); setOpenModal(true); }} sx={btnPrimary}>
             + Novo Aviso
           </Button>
         )}
       </Box>
 
-      {/* Lista de avisos */}
       {loading ? (
         <Box display="flex" justifyContent="center" mt={10}>
           <CircularProgress sx={{ color: primary }} />
@@ -182,7 +169,6 @@ export default function Comunidade() {
         </Box>
       )}
 
-      {/* Modal de criação / edição */}
       <Dialog
         open={openModal}
         onClose={fecharModal}

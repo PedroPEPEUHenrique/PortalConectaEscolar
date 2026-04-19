@@ -6,12 +6,12 @@ const UpdateSchema = z.object({
   autor: z.string().min(1).max(100).optional(),
   mensagem: z.string().min(1).max(1000).optional(),
 });
-const UUID = z.string().uuid();
+const ID = z.string().min(1);
 const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+  if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
   const parsed = UpdateSchema.safeParse(await request.json());
   if (!parsed.success)
@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+  if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
   const sb = getSupabaseAdmin();
   const { error } = await sb.from("comunidade").delete().eq("id", id);

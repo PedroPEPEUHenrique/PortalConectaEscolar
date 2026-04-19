@@ -7,6 +7,7 @@ import {
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
 type Evento = {
@@ -29,51 +30,49 @@ export default function Calendario() {
   const [salvando,   setSalvando]   = useState(false);
   const [form,       setForm]       = useState(FORM_VAZIO);
 
-  // Apenas gestor e admin podem criar / editar / excluir eventos
   const podeGerenciar = userRole === "gestor" || userRole === "admin";
 
-  /** Busca todos os eventos da API e atualiza o estado */
   const buscarEventos = useCallback(async () => {
-    try {
-      const res   = await fetch("/api/eventos");
-      const dados = await res.json();
-      if (res.ok) setEventos(dados);
-    } catch {
-      // silencia erros de rede
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase
+      .from("eventos")
+      .select("id, data, evento, tipo, created_at")
+      .order("data", { ascending: true })
+      .limit(500);
+    if (!error && data) setEventos(data as Evento[]);
+    setLoading(false);
   }, []);
 
   useEffect(() => { buscarEventos(); }, [buscarEventos]);
 
-  /** Cria ou atualiza um evento via POST/PUT na API */
   const handleSalvar = async () => {
-    if (!form.data || !form.evento) return;
+    if (!form.data || !form.evento.trim()) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.data)) {
+      alert("A data precisa estar no formato YYYY-MM-DD (ex: 2025-06-10).");
+      return;
+    }
     setSalvando(true);
     try {
-      const url    = editandoId ? `/api/eventos/${editandoId}` : "/api/eventos";
-      const method = editandoId ? "PUT" : "POST";
-      const res    = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(form),
-      });
-      if (res.ok) {
-        buscarEventos();
-        fecharModal();
+      const payload = {
+        data:   form.data,
+        evento: form.evento.trim(),
+        tipo:   form.tipo,
+      };
+
+      if (editandoId) {
+        const { error } = await supabase.from("eventos").update(payload).eq("id", editandoId);
+        if (error) { alert("Erro ao atualizar: " + error.message); return; }
       } else {
-        const err = await res.json();
-        alert("Erro: " + JSON.stringify(err));
+        const { error } = await supabase.from("eventos").insert([payload]);
+        if (error) { alert("Erro ao criar: " + error.message); return; }
       }
-    } catch {
-      // erro de rede
+
+      await buscarEventos();
+      fecharModal();
     } finally {
       setSalvando(false);
     }
   };
 
-  /** Preenche o formulário com os dados do evento selecionado para edição */
   const handleEditar = (id: string) => {
     const ev = eventos.find(e => e.id === id);
     if (!ev) return;
@@ -82,15 +81,13 @@ export default function Calendario() {
     setOpenModal(true);
   };
 
-  /** Solicita confirmação e exclui o evento via DELETE na API */
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Deseja excluir este evento?")) return;
-    const res = await fetch(`/api/eventos/${id}`, { method: "DELETE" });
-    if (res.ok) buscarEventos();
-    else alert("Erro ao excluir evento.");
+    const { error } = await supabase.from("eventos").delete().eq("id", id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    buscarEventos();
   };
 
-  /** Fecha e reseta o modal de criação/edição */
   const fecharModal = () => {
     setOpenModal(false);
     setEditandoId(null);
@@ -100,7 +97,6 @@ export default function Calendario() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
 
-      {/* Cabeçalho da página */}
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", mb: 6, gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 0.5 }}>
@@ -111,13 +107,12 @@ export default function Calendario() {
           </Typography>
         </Box>
         {podeGerenciar && (
-          <Button variant="contained" onClick={() => setOpenModal(true)} sx={btnPrimary}>
+          <Button variant="contained" onClick={() => { fecharModal(); setOpenModal(true); }} sx={btnPrimary}>
             + Novo Evento
           </Button>
         )}
       </Box>
 
-      {/* Grid de eventos */}
       {loading ? (
         <Box display="flex" justifyContent="center" mt={10}>
           <CircularProgress sx={{ color: primary }} />
@@ -181,7 +176,6 @@ export default function Calendario() {
         </Box>
       )}
 
-      {/* Modal de criação / edição */}
       <Dialog
         open={openModal}
         onClose={fecharModal}
@@ -193,7 +187,8 @@ export default function Calendario() {
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "16px !important" }}>
           <TextField
-            label="Data (ex: 2025-06-10)" fullWidth
+            label="Data" type="date" fullWidth
+            InputLabelProps={{ shrink: true }}
             value={form.data}
             onChange={e => setForm({ ...form, data: e.target.value })}
             sx={inputStyle}
@@ -224,7 +219,7 @@ export default function Calendario() {
           <Button
             onClick={handleSalvar}
             variant="contained"
-            disabled={salvando || !form.data || !form.evento}
+            disabled={salvando || !form.data || !form.evento.trim()}
             sx={btnPrimary}
           >
             {salvando ? "Salvando..." : editandoId ? "Atualizar" : "Salvar"}

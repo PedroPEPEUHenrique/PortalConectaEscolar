@@ -8,13 +8,13 @@ const UpdateSchema = z.object({
   status: z.enum(["Pendente", "Em andamento", "Concluído"]).optional(),
   arquivo_pdf_url: z.string().url().optional().nullable(),
 });
-const UUID = z.string().uuid();
+const ID = z.string().min(1);
 const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+    if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ erro: "Corpo inválido" }, { status: 400, headers: sec });
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+    if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
     const sb = getSupabaseAdmin();
     const { error } = await sb.from("atividades").delete().eq("id", id);

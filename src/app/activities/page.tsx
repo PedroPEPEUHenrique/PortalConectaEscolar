@@ -15,10 +15,9 @@ type Atividade = {
   titulo:          string;
   descricao:       string;
   status:          string;
-  arquivo_pdf_url?: string;
+  arquivo_pdf_url?: string | null;
 };
 
-// Mapeamento de status para cor do chip
 const STATUS_CORES: Record<string, string> = {
   "Concluído":    "#22c55e",
   "Em andamento": "#3b82f6",
@@ -39,33 +38,22 @@ export default function Activities() {
   const [arquivoPDF, setArquivoPDF] = useState<File | null>(null);
   const [salvando,   setSalvando]   = useState(false);
 
-  // Apenas professor e admin podem criar/editar/excluir atividades
   const podeGerenciar = userRole === "professor" || userRole === "admin";
 
-  /** Busca todas as atividades da API e atualiza o estado */
   const buscarAtividades = useCallback(async () => {
-    try {
-      // cache: "no-store" garante que após criar/editar/excluir a lista seja
-      // sempre refeita do servidor e não venha do cache do browser
-      const res   = await fetch("/api/atividades", { cache: "no-store" });
-      const dados = await res.json();
-      if (res.ok && Array.isArray(dados)) setAtividades(dados);
-    } catch {
-      // silencia erros de rede; a lista fica no estado anterior
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase
+      .from("atividades")
+      .select("id, titulo, descricao, status, arquivo_pdf_url, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (!error && data) setAtividades(data as Atividade[]);
+    setLoading(false);
   }, []);
 
   useEffect(() => { buscarAtividades(); }, [buscarAtividades]);
 
-  /**
-   * Salva (cria ou edita) uma atividade.
-   * Se houver PDF selecionado, faz upload no Supabase Storage primeiro
-   * e insere a URL pública no payload antes de chamar a API.
-   */
   const handleSalvar = async () => {
-    if (!form.titulo.trim() || !form.descricao.trim()) return;
+    if (!form.titulo.trim()) return;
     setSalvando(true);
     try {
       let pdfUrl: string | null = null;
@@ -76,44 +64,42 @@ export default function Activities() {
         const { error: upErr } = await supabase.storage
           .from("atividades_pdfs")
           .upload(fileName, arquivoPDF);
-        if (upErr) { alert("Erro no upload do PDF."); throw upErr; }
+        if (upErr) { alert("Erro no upload do PDF: " + upErr.message); throw upErr; }
         const { data: urlData } = supabase.storage
           .from("atividades_pdfs")
           .getPublicUrl(fileName);
         pdfUrl = urlData.publicUrl;
       }
 
-      const payload = pdfUrl ? { ...form, arquivo_pdf_url: pdfUrl } : form;
-      const url     = editandoId ? `/api/atividades/${editandoId}` : "/api/atividades";
-      const method  = editandoId ? "PUT" : "POST";
+      const payload: Partial<Atividade> = {
+        titulo:    form.titulo.trim(),
+        descricao: form.descricao.trim(),
+        status:    form.status,
+      };
+      if (pdfUrl) payload.arquivo_pdf_url = pdfUrl;
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload),
-      });
-
-      // Leitura resiliente: evita crash quando o servidor retorna body vazio
-      const texto = await res.text();
-      let data: { erro?: string } = {};
-      try { data = texto ? JSON.parse(texto) : {}; } catch {}
-
-      if (res.ok) {
-        // Aguarda refetch antes de fechar o modal — garante que a lista
-        // esteja atualizada quando o usuário voltar a ver o mural
-        await buscarAtividades();
-        fecharModal();
+      if (editandoId) {
+        const { error } = await supabase
+          .from("atividades")
+          .update(payload)
+          .eq("id", editandoId);
+        if (error) { alert("Erro ao atualizar: " + error.message); return; }
       } else {
-        alert("Erro ao salvar: " + (data.erro ?? `HTTP ${res.status}`));
+        const { error } = await supabase
+          .from("atividades")
+          .insert([payload]);
+        if (error) { alert("Erro ao criar: " + error.message); return; }
       }
+
+      await buscarAtividades();
+      fecharModal();
     } catch {
-      // erro de rede ou upload já exibido via alert
+      // já tratado
     } finally {
       setSalvando(false);
     }
   };
 
-  /** Preenche o formulário com os dados da atividade selecionada para edição */
   const handleEditar = (id: string) => {
     const a = atividades.find(x => x.id === id);
     if (!a) return;
@@ -122,15 +108,13 @@ export default function Activities() {
     setOpenModal(true);
   };
 
-  /** Solicita confirmação e exclui a atividade via DELETE na API */
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Confirma exclusão desta atividade?")) return;
-    const res = await fetch(`/api/atividades/${id}`, { method: "DELETE" });
-    if (res.ok) buscarAtividades();
-    else alert("Erro ao excluir atividade.");
+    const { error } = await supabase.from("atividades").delete().eq("id", id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    buscarAtividades();
   };
 
-  /** Fecha e reseta o modal de criação/edição */
   const fecharModal = () => {
     setOpenModal(false);
     setEditandoId(null);
@@ -141,7 +125,6 @@ export default function Activities() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
 
-      {/* Cabeçalho da página */}
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", mb: 6, gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 0.5 }}>
@@ -158,7 +141,6 @@ export default function Activities() {
         )}
       </Box>
 
-      {/* Lista de atividades */}
       {loading ? (
         <Box display="flex" justifyContent="center" mt={10}>
           <CircularProgress sx={{ color: primary }} />
@@ -237,7 +219,6 @@ export default function Activities() {
         </Box>
       )}
 
-      {/* Modal de criação / edição */}
       <Dialog
         open={openModal}
         onClose={fecharModal}
@@ -274,7 +255,6 @@ export default function Activities() {
             <MenuItem value="Concluído">Concluído</MenuItem>
           </TextField>
 
-          {/* Upload de PDF opcional — feito diretamente no Supabase Storage */}
           <Button
             variant="outlined"
             component="label"

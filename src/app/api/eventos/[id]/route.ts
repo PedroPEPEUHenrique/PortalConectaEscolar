@@ -7,12 +7,12 @@ const UpdateSchema = z.object({
   evento: z.string().min(1).max(300).optional(),
   tipo: z.string().max(50).optional(),
 });
-const UUID = z.string().uuid();
+const ID = z.string().min(1);
 const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+  if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
   const body = await request.json();
   // Suporte ao campo "data" enviado como "dataEvento" pelo frontend
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
+  if (!ID.safeParse(id).success) return NextResponse.json({ erro: "ID inválido" }, { status: 400, headers: sec });
 
   const sb = getSupabaseAdmin();
   const { error } = await sb.from("eventos").delete().eq("id", id);
