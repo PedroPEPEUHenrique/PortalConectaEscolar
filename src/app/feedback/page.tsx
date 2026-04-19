@@ -43,9 +43,14 @@ export default function Feedback() {
         body: JSON.stringify(payload),
       });
 
+      // Lê como texto primeiro e tenta parsear — evita crash quando o servidor
+      // retorna body vazio (ex: erro 500 sem JSON)
+      const texto = await res.text();
+      let data: { erro?: string } = {};
+      try { data = texto ? JSON.parse(texto) : {}; } catch { /* ignora */ }
+
       if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.erro ?? "Erro ao enviar");
+        throw new Error(data.erro ?? `Erro ${res.status} ao enviar`);
       }
 
       setSucesso(true);

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Box, Typography, Chip, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Avatar,
+  TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
@@ -45,9 +45,11 @@ export default function Activities() {
   /** Busca todas as atividades da API e atualiza o estado */
   const buscarAtividades = useCallback(async () => {
     try {
-      const res   = await fetch("/api/atividades");
+      // cache: "no-store" garante que após criar/editar/excluir a lista seja
+      // sempre refeita do servidor e não venha do cache do browser
+      const res   = await fetch("/api/atividades", { cache: "no-store" });
       const dados = await res.json();
-      if (res.ok) setAtividades(dados);
+      if (res.ok && Array.isArray(dados)) setAtividades(dados);
     } catch {
       // silencia erros de rede; a lista fica no estado anterior
     } finally {
@@ -91,12 +93,18 @@ export default function Activities() {
         body:    JSON.stringify(payload),
       });
 
+      // Leitura resiliente: evita crash quando o servidor retorna body vazio
+      const texto = await res.text();
+      let data: { erro?: string } = {};
+      try { data = texto ? JSON.parse(texto) : {}; } catch {}
+
       if (res.ok) {
-        buscarAtividades();
+        // Aguarda refetch antes de fechar o modal — garante que a lista
+        // esteja atualizada quando o usuário voltar a ver o mural
+        await buscarAtividades();
         fecharModal();
       } else {
-        const err = await res.json();
-        alert("Erro: " + (err.erro ?? JSON.stringify(err)));
+        alert("Erro ao salvar: " + (data.erro ?? `HTTP ${res.status}`));
       }
     } catch {
       // erro de rede ou upload já exibido via alert
