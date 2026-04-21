@@ -14,7 +14,6 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-// Itens de menu visíveis para todos os usuários autenticados
 const BASE_MENU = [
   { label: "Home",         path: "/" },
   { label: "Institucional", path: "/institucional" },
@@ -23,7 +22,6 @@ const BASE_MENU = [
   { label: "Comunidade",   path: "/comunidade" },
 ];
 
-// Itens extras visíveis apenas para gestor e admin
 const ADMIN_MENU = [
   { label: "Turmas",       path: "/turmas" },
   { label: "Mensagens SAC", path: "/sac-admin" },
@@ -32,33 +30,24 @@ const ADMIN_MENU = [
 export default function Navbar() {
   const pathname = usePathname();
   const { user, cargo } = useAuth();
-
-  // Lê o tema dinâmico do AccessibilityProvider (cores mudam com o widget)
   const theme   = useTheme();
   const primary = theme.palette.primary.main;
   const bg      = theme.palette.background.paper;
 
-  // Menu completo depende do cargo: gestor/admin veem itens administrativos
   const isGestorOuAdmin = cargo === "gestor" || cargo === "admin";
   const menuItems = isGestorOuAdmin ? [...BASE_MENU, ...ADMIN_MENU] : BASE_MENU;
 
-  // Estado do dropdown de perfil
   const [anchorEl, setAnchorEl]   = useState<null | HTMLElement>(null);
   const menuAberto = Boolean(anchorEl);
 
-  // Estado do drawer mobile
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Estado do modal da carteirinha de estudante
   const [openCarteirinha, setOpenCarteirinha]     = useState(false);
   const [perfilAluno, setPerfilAluno]             = useState<{ nome_completo: string | null; matricula: string | null } | null>(null);
   const [loadingCarteirinha, setLoadingCarteirinha] = useState(false);
 
-  /** Abre o dropdown de perfil */
   const handleAbrirMenu   = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
-  /** Fecha o dropdown de perfil */
   const handleFecharMenu  = () => setAnchorEl(null);
-  /** Alterna o drawer de navegação mobile */
   const handleToggleDrawer = () => setMobileOpen(prev => !prev);
 
   /**
@@ -68,7 +57,7 @@ export default function Navbar() {
   const handleAbrirCarteirinha = async () => {
     handleFecharMenu();
     setOpenCarteirinha(true);
-    if (perfilAluno) return; // já carregado antes, não busca de novo
+    if (perfilAluno) return;
     setLoadingCarteirinha(true);
     const { data } = await supabase
       .from("perfis")
@@ -96,7 +85,6 @@ export default function Navbar() {
     window.location.href = "/login";
   };
 
-  // Conteúdo do drawer mobile (reutilizado dentro do <Drawer>)
   const drawerContent = (
     <Box
       onClick={handleToggleDrawer}
@@ -141,7 +129,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ── Barra principal ─────────────────────────────────────────── */}
       <AppBar
         position="fixed"
         sx={{
@@ -154,7 +141,6 @@ export default function Navbar() {
       >
         <Toolbar sx={{ display: "flex", justifyContent: "space-between", minHeight: "66px", px: { xs: 2, md: 4 } }}>
 
-          {/* Esquerda: hambúrguer (mobile) + logo */}
           <Box display="flex" alignItems="center" gap={1}>
             <IconButton
               color="inherit"
@@ -171,7 +157,6 @@ export default function Navbar() {
             </Link>
           </Box>
 
-          {/* Centro: links de navegação (desktop) */}
           <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.5 }}>
             {menuItems.map((item) => {
               const isActive = pathname === item.path;
@@ -196,7 +181,6 @@ export default function Navbar() {
             })}
           </Box>
 
-          {/* Direita: avatar com dropdown ou botão de login */}
           <Box>
             {user ? (
               <>
@@ -218,7 +202,6 @@ export default function Navbar() {
                   </IconButton>
                 </Tooltip>
 
-                {/* Dropdown de perfil */}
                 <Menu
                   anchorEl={anchorEl}
                   open={menuAberto}
@@ -239,13 +222,11 @@ export default function Navbar() {
                   transformOrigin={{ horizontal: "right", vertical: "top" }}
                   anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
                 >
-                  {/* Email não-clicável como cabeçalho do dropdown */}
                   <MenuItem disableRipple sx={{ opacity: 0.5, fontSize: "0.8rem", pointerEvents: "none", py: 0.5, fontFamily: "'Inclusive Sans', sans-serif" }}>
                     {user.email}
                   </MenuItem>
                   <Divider sx={{ borderColor: "rgba(255,255,255,0.07)", my: 0.5 }} />
 
-                  {/* Carteirinha só aparece para alunos */}
                   {cargo === "aluno" && (
                     <MenuItem onClick={handleAbrirCarteirinha} sx={{ fontSize: "0.875rem", fontFamily: "'Inclusive Sans', sans-serif" }}>
                       Carteirinha de Estudante
@@ -284,7 +265,6 @@ export default function Navbar() {
         </Toolbar>
       </AppBar>
 
-      {/* ── Drawer de navegação mobile ──────────────────────────────── */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -298,10 +278,8 @@ export default function Navbar() {
         {drawerContent}
       </Drawer>
 
-      {/* Espaçador para empurrar o conteúdo abaixo da AppBar fixa */}
       <Toolbar sx={{ minHeight: "66px" }} />
 
-      {/* ── Modal: Carteirinha de Estudante ─────────────────────────── */}
       <Dialog
         open={openCarteirinha}
         onClose={() => setOpenCarteirinha(false)}
@@ -325,7 +303,6 @@ export default function Navbar() {
               <CircularProgress sx={{ color: primary }} />
             </Box>
           ) : (
-            /* Cartão estilo crachá com gradiente da cor do tema */
             <Box sx={{
               background:    `linear-gradient(135deg, ${primary}cc, ${primary}66)`,
               borderRadius:  2,
@@ -336,7 +313,6 @@ export default function Navbar() {
               boxShadow:     "3px 3px 18px rgba(0,0,0,0.5)",
               minHeight:     160,
             }}>
-              {/* Dados do estudante */}
               <Box sx={{ flex: 1, wordBreak: "break-word" }}>
                 <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.75, letterSpacing: "0.08em", textTransform: "uppercase", mb: 1.5 }}>
                   Conecta Portal Escolar
@@ -357,7 +333,6 @@ export default function Navbar() {
                 </Typography>
               </Box>
 
-              {/* Placeholder de foto */}
               <Box sx={{
                 width:      72,
                 height:     96,

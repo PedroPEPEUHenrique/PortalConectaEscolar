@@ -6,8 +6,6 @@ import React, {
 } from "react";
 import { createTheme, ThemeProvider, CssBaseline } from "@mui/material";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
 export type ColorMode =
   | "padrao"
   | "daltonismo-verde-vermelho"
@@ -28,10 +26,14 @@ type AccessibilityContextType = {
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
 
-// Chave do localStorage onde as preferências são salvas
 const STORAGE_KEY = "portal-escolar-acessibilidade";
 
-// ─── Helpers de persistência ──────────────────────────────────────────────────
+const PALETAS: Record<ColorMode, { primary: string; secondary: string; bg: string; paper: string }> = {
+  padrao:                      { primary: "#22c55e", secondary: "#60a5fa", bg: "#0f172a", paper: "#111827" },
+  "daltonismo-verde-vermelho": { primary: "#ffd700", secondary: "#0055ff", bg: "#0f172a", paper: "#111827" },
+  monocromatico:               { primary: "#ffffff", secondary: "#cccccc", bg: "#0a0a0a", paper: "#1a1a1a" },
+  "alto-contraste":            { primary: "#ffff00", secondary: "#ff6600", bg: "#000000", paper: "#111111" },
+};
 
 /** Salva as preferências de acessibilidade no localStorage */
 function salvarPreferencias(prefs: object) {
@@ -46,25 +48,13 @@ function carregarPreferencias() {
   } catch { return null; }
 }
 
-// ─── Paletas de cor por modo ──────────────────────────────────────────────────
-
-const PALETAS: Record<ColorMode, { primary: string; secondary: string; bg: string; paper: string }> = {
-  padrao:                      { primary: "#00c77a", secondary: "#00b4d8", bg: "#0f172a", paper: "#111827" },
-  "daltonismo-verde-vermelho": { primary: "#ffd700", secondary: "#0055ff", bg: "#0f172a", paper: "#111827" },
-  monocromatico:               { primary: "#ffffff", secondary: "#cccccc", bg: "#0a0a0a", paper: "#1a1a1a" },
-  "alto-contraste":            { primary: "#ffff00", secondary: "#ff6600", bg: "#000000", paper: "#111111" },
-};
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   const [fontSizeModifier,  setFontSizeModifier]  = useState(14);
   const [colorMode,         setColorModeState]    = useState<ColorMode>("padrao");
   const [reducaoMovimento,  setReducaoMovimento]  = useState(false);
-  // hydrated evita sobrescrever o estado padrão com undefined antes do localStorage ser lido
+  // Evita sobrescrever o estado padrão com undefined antes do localStorage ser lido
   const [hydrated,          setHydrated]          = useState(false);
 
-  // Carrega preferências salvas na primeira montagem (após hidratação do cliente)
   useEffect(() => {
     const salvas = carregarPreferencias();
     if (salvas) {
@@ -75,24 +65,18 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     setHydrated(true);
   }, []);
 
-  // Persiste preferências sempre que alguma muda (somente após hidratação)
   useEffect(() => {
     if (!hydrated) return;
     salvarPreferencias({ fontSizeModifier, colorMode, reducaoMovimento });
   }, [fontSizeModifier, colorMode, reducaoMovimento, hydrated]);
 
-  // Aplica / remove a classe CSS de redução de animações no <html>
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reducaoMovimento);
   }, [reducaoMovimento]);
 
-  // Aplica o tamanho de fonte globalmente via CSS var no <html>
-  // Isso garante que rem/em de TODAS as páginas respondam ao widget
   useEffect(() => {
     document.documentElement.style.fontSize = fontSizeModifier + "px";
   }, [fontSizeModifier]);
-
-  // ─── Ações memoizadas (evitam re-renders desnecessários nos consumidores) ───
 
   /** Aumenta o tamanho da fonte em 2px até o máximo de 22px */
   const aumentarFonte = useCallback(() => setFontSizeModifier(p => Math.min(p + 2, 22)), []);
@@ -112,15 +96,12 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);
 
-  // ─── Tema MUI dinâmico ────────────────────────────────────────────────────
-  // Recriado apenas quando colorMode ou fontSizeModifier mudam (memoizado)
   const theme = useMemo(() => {
     const p = PALETAS[colorMode];
     return createTheme({
       typography: {
         fontSize:   fontSizeModifier,
         fontFamily: "'Inclusive Sans', sans-serif",
-        // Garante a fonte em todos os variants tipográficos do MUI
         h1: { fontFamily: "'Inclusive Sans', sans-serif" },
         h2: { fontFamily: "'Inclusive Sans', sans-serif" },
         h3: { fontFamily: "'Inclusive Sans', sans-serif" },
@@ -177,7 +158,6 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
       }}
     >
       <ThemeProvider theme={theme}>
-        {/* CssBaseline aplica o reset de CSS e o background/fonte globalmente */}
         <CssBaseline />
         {children}
       </ThemeProvider>

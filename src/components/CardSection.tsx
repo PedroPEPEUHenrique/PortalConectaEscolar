@@ -5,7 +5,7 @@ import { Card, CardContent, Typography, Box } from "@mui/material";
 
 /**
  * Seção de cards de exemplo com grid responsivo.
- * Recebe um título e renderiza 4 cards com efeito glassmorphism e borda neon no hover.
+ * Recebe um título e renderiza 4 cards com efeito glassmorphism.
  */
 export default function CardSection({ title }: { title: string }) {
   return (
@@ -21,7 +21,7 @@ export default function CardSection({ title }: { title: string }) {
             <Card
               sx={{
                 background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(0,255,153,0.3)",
+                border: "1px solid rgba(255,255,255,0.08)",
                 backdropFilter: "blur(14px)",
                 color: "white",
                 borderRadius: "4px",
@@ -30,13 +30,13 @@ export default function CardSection({ title }: { title: string }) {
                 transition: "all 0.3s ease",
                 "&:hover": {
                   transform: "translateY(-8px)",
-                  boxShadow: "0 0 25px rgba(0,255,153,0.4)",
-                  borderColor: "#00ff99",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                  borderColor: "rgba(255,255,255,0.2)",
                 },
               }}
             >
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ color: "#00ff99" }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: "#22c55e" }}>
                   Card {item}
                 </Typography>
                 <Typography variant="body2" mt={2} sx={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>

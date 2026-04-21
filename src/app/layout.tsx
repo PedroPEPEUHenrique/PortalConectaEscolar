@@ -24,8 +24,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, fontFamily: "'Inclusive Sans', sans-serif" }}>
         <SkipLink />
         <Providers>
-          {/* AccessibilityProvider contém o ThemeProvider do MUI.
-              Tudo dentro dele recebe o tema dinâmico (cores + fonte). */}
           <AccessibilityProvider>
             <AppShell>
               {children}

@@ -55,7 +55,6 @@ export default function Login() {
         borderRadius: 2, overflow: "hidden",
         display: "flex", flexDirection: { xs: "column", md: "row" },
       }}>
-        {/* Lado esquerdo */}
         <Box sx={{ flex: 1, background: `${primary}08`, borderRight: { md: "1px solid rgba(255,255,255,0.06)" }, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", p: { xs: 5, md: 6 }, gap: 2 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-portal-inteligente.png" alt="Logo Conecta Portal Escolar" style={{ width: 180, height: "auto" }} />
@@ -65,7 +64,6 @@ export default function Login() {
           </Box>
         </Box>
 
-        {/* Formulário */}
         <Box component="form" onSubmit={handleLogin} noValidate autoComplete="on"
           sx={{ flex: 1, p: { xs: 4, md: 6 }, color: "white" }}>
           <Typography variant="h5" fontWeight={700} mb={1}>Entrar na conta</Typography>

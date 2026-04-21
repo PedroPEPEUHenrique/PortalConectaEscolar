@@ -9,7 +9,6 @@ import "swiper/css/pagination";
 import { Box, Typography, Button } from "@mui/material";
 import { useRouter } from "next/navigation";
 
-// Conteúdo de cada slide do carrossel
 const slides = [
   {
     title: "Bem-vindo ao Conecta Portal Escolar",
@@ -37,14 +36,12 @@ export default function Carousel() {
       sx={{
         width: "100%",
         mt: 4,
-        // Personaliza as bolinhas de paginação do Swiper para o tema dark
         "& .swiper-pagination-bullet": {
-          backgroundColor: "rgba(255,255,255,0.5)",
+          backgroundColor: "rgba(255,255,255,0.4)",
           opacity: 1,
         },
         "& .swiper-pagination-bullet-active": {
-          backgroundColor: "#00ff99",
-          boxShadow: "0 0 10px #00ff99",
+          backgroundColor: "#22c55e",
         },
       }}
     >
@@ -53,7 +50,7 @@ export default function Carousel() {
         effect="fade"
         autoplay={{ delay: 5000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
-        style={{ borderRadius: "8px", overflow: "hidden" }}
+        style={{ borderRadius: "2px", overflow: "hidden" }}
       >
         {slides.map((slide, index) => (
           <SwiperSlide key={index}>
@@ -100,22 +97,22 @@ export default function Carousel() {
                 variant="outlined"
                 onClick={() => router.push("/login")}
                 sx={{
-                  color: "#00ff99",
-                  borderColor: "#00ff99",
+                  color: "#22c55e",
+                  borderColor: "#22c55e",
                   borderWidth: "2px",
                   fontWeight: "bold",
                   fontSize: { xs: "1rem", md: "1.1rem" },
-                  borderRadius: "8px",
+                  borderRadius: "4px",
                   px: { xs: 4, md: 6 },
                   py: 1.5,
                   textTransform: "none",
                   transition: "all 0.3s ease",
                   "&:hover": {
-                    backgroundColor: "rgba(0, 255, 153, 0.1)",
-                    borderColor: "#00ff99",
+                    backgroundColor: "rgba(34,197,94,0.1)",
+                    borderColor: "#22c55e",
                     borderWidth: "2px",
                     transform: "translateY(-3px)",
-                    boxShadow: "0 5px 15px rgba(0, 255, 153, 0.3)",
+                    boxShadow: "0 5px 12px rgba(0,0,0,0.4)",
                   },
                 }}
               >

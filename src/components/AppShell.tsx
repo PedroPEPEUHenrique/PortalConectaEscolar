@@ -5,19 +5,15 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAccessibility } from "@/context/AccessibilityContext";
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  // Ao consumir o contexto aqui, garantimos que AppShell re-renderiza
-  // sempre que colorMode ou fontSizeModifier mudam — e todos os filhos
-  // (incluindo Navbar e Footer) recebem o tema atualizado do ThemeProvider pai.
-  const { colorMode } = useAccessibility();
+const BACKGROUNDS: Record<string, string> = {
+  padrao:                      "#0f172a",
+  "daltonismo-verde-vermelho": "#0f172a",
+  monocromatico:               "#0a0a0a",
+  "alto-contraste":            "#000000",
+};
 
-  // Mapa de background por modo — espelha exatamente o AccessibilityContext
-  const backgrounds: Record<string, string> = {
-    padrao:                      "#0f172a",
-    "daltonismo-verde-vermelho": "#0f172a",
-    monocromatico:               "#0a0a0a",
-    "alto-contraste":            "#000000",
-  };
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { colorMode } = useAccessibility();
 
   return (
     <Box
@@ -25,7 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: backgrounds[colorMode] ?? "#0f172a",
+        background: BACKGROUNDS[colorMode] ?? "#0f172a",
         fontFamily: "'Inclusive Sans', sans-serif",
       }}
     >

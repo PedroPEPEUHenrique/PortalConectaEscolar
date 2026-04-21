@@ -19,7 +19,6 @@ export default function Institucional() {
   return (
     <Box sx={{ background: bg, color: "white" }}>
 
-      {/* HERO */}
       <Box sx={{
         minHeight: "100vh",
         display: "flex", flexDirection: "column",
@@ -52,7 +51,6 @@ export default function Institucional() {
         </Box>
       </Box>
 
-      {/* BENEFÍCIOS */}
       <Box sx={{ maxWidth: "1600px", margin: "0 auto", px: 6, pb: 12 }}>
         <Typography variant="h3" fontWeight="bold" textAlign="center" mb={8}>
           <p />
@@ -72,7 +70,7 @@ export default function Institucional() {
                 flex: "1 1 22%", minWidth: "260px", height: "260px",
                 background: "rgba(255,255,255,0.05)",
                 border: `1px solid ${primary}44`,
-                borderRadius: 6, p: 6,
+                borderRadius: 1, p: 6,
                 backdropFilter: "blur(14px)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 textAlign: "center",
@@ -86,7 +84,6 @@ export default function Institucional() {
         </Box>
       </Box>
 
-      {/* DEPOIMENTOS */}
       <Box sx={{ maxWidth: "1600px", margin: "0 auto", px: 6, pb: 12 }}>
         <Typography variant="h3" fontWeight="bold" textAlign="center" mb={8}>
           O que dizem sobre nós
@@ -100,7 +97,7 @@ export default function Institucional() {
                 flex: "1 1 30%", minWidth: "280px", height: "320px",
                 background: "rgba(255,255,255,0.05)",
                 border: `1px solid ${primary}44`,
-                borderRadius: 6, p: 6,
+                borderRadius: 1, p: 6,
                 backdropFilter: "blur(14px)",
                 display: "flex", flexDirection: "column",
                 justifyContent: "space-between", textAlign: "center",
@@ -140,7 +137,6 @@ export default function Institucional() {
         </Box>
       </Box>
 
-      {/* CTA FINAL */}
       <Box sx={{ textAlign: "center", py: 12 }}>
         <Typography variant="h3" fontWeight="bold">
           Pronto para modernizar sua escola?

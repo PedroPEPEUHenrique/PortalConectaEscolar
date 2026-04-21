@@ -3,10 +3,9 @@
 import { useTheme } from "@mui/material";
 
 /**
- * Hook de conveniência que extrai as cores do tema MUI atual e retorna
- * os estilos reutilizáveis (inputs, botões, dialogs).
- * Como consome o ThemeProvider do AccessibilityContext, as cores mudam
- * automaticamente quando o usuário troca o esquema de cores no widget.
+ * Extrai as cores do tema MUI atual e retorna estilos reutilizáveis
+ * para inputs, botões e dialogs. As cores mudam automaticamente quando
+ * o usuário troca o esquema de cores no widget de acessibilidade.
  */
 export function useColors() {
   const theme = useTheme();
@@ -17,16 +16,11 @@ export function useColors() {
   const textMain = theme.palette.text.primary;
 
   return {
-    /** Cor primária do tema atual (ex: #00c77a) */
     primary,
-    /** Background padrão das páginas */
     bg,
-    /** Background de superfícies elevadas (modais, cards) */
     paper,
-    /** Cor principal do texto */
     textMain,
 
-    /** sx completo para campos MUI TextField no dark theme */
     inputStyle: {
       "& .MuiOutlinedInput-root": {
         color:      textMain,
@@ -40,7 +34,6 @@ export function useColors() {
       "& .MuiSelect-icon":                { color: "rgba(255,255,255,0.5)" },
     },
 
-    /** sx para botão primário (filled, cor do tema) */
     btnPrimary: {
       background: primary,
       color:      bg,
@@ -50,7 +43,6 @@ export function useColors() {
       "&:disabled": { background: `${primary}44`, color: "rgba(255,255,255,0.3)" },
     },
 
-    /** sx para botão outlined com a cor primária */
     btnOutlined: {
       borderColor: `${primary}66`,
       color:       primary,
@@ -58,7 +50,6 @@ export function useColors() {
       "&:hover":   { borderColor: primary, background: `${primary}18` },
     },
 
-    /** sx para o Paper do Dialog */
     dialogPaper: {
       background:  paper,
       border:      "1px solid rgba(255,255,255,0.08)",

@@ -94,7 +94,6 @@ export default function Activities() {
       await buscarAtividades();
       fecharModal();
     } catch {
-      // já tratado
     } finally {
       setSalvando(false);
     }

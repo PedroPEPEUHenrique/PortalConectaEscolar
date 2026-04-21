@@ -19,7 +19,7 @@ export default function PoliticaCookies() {
           variant="h3" 
           component="h1" 
           fontWeight="bold" 
-          sx={{ color: "#00ff99", mb: 4, textAlign: "center" }}
+          sx={{ color: "#22c55e", mb: 4, textAlign: "center" }}
         >
           Política de Cookies
         </Typography>
@@ -35,9 +35,9 @@ export default function PoliticaCookies() {
           sx={{ 
             background: "rgba(255,255,255,0.03)", 
             p: { xs: 3, md: 6 }, 
-            borderRadius: 4,
-            border: "1px solid rgba(0,255,153,0.2)",
-            "& h2": { color: "#00e5ff", mt: 5, mb: 2, fontSize: "1.5rem" },
+            borderRadius: "4px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            "& h2": { color: "#60a5fa", mt: 5, mb: 2, fontSize: "1.5rem" },
             "& p": { color: "rgba(255,255,255,0.8)", lineHeight: 1.8, mb: 2, fontSize: "1rem" },
             "& ul": { color: "rgba(255,255,255,0.8)", mb: 3, pl: 3 },
             "& li": { mb: 1, lineHeight: 1.6 },
@@ -81,15 +81,14 @@ export default function PoliticaCookies() {
           </p>
           
           <p style={{ marginTop: "24px" }}>
-            {/* O SEGREDO DO LINK NO NEXT 13+ FICA AQUI */}
-            <MuiLink 
+            <MuiLink
               component={NextLink} 
               href="/feedback" 
               sx={{ 
-                color: "#00ff99", 
-                textDecoration: "none", 
+                color: "#22c55e",
+                textDecoration: "none",
                 fontWeight: "bold",
-                "&:hover": { textDecoration: "underline" } 
+                "&:hover": { textDecoration: "underline" }
               }}
             >
               Ir para a página de Contato / SAC

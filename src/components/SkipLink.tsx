@@ -13,7 +13,7 @@ export default function SkipLink() {
         position: "absolute",
         top: "-100px",
         left: 0,
-        background: "#00c77a",
+        background: "#22c55e",
         color: "#0f172a",
         padding: "10px 20px",
         fontWeight: 700,

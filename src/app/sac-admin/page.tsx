@@ -70,7 +70,6 @@ export default function SacAdminPage() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 2, md: 6 }, maxWidth: "900px", margin: "0 auto" }}>
 
-      {/* Cabeçalho */}
       <Box sx={{ mb: 5, textAlign: "center" }}>
         <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 1 }}>
           Mensagens SAC
@@ -80,7 +79,6 @@ export default function SacAdminPage() {
         </Typography>
       </Box>
 
-      {/* Filtro por tipo */}
       <Box sx={{ mb: 4, maxWidth: 260 }}>
         <TextField
           select
@@ -97,12 +95,10 @@ export default function SacAdminPage() {
         </TextField>
       </Box>
 
-      {/* Contagem */}
       <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.8rem", mb: 3 }}>
         {lista.length} {lista.length === 1 ? "relato" : "relatos"} encontrado{lista.length !== 1 ? "s" : ""}
       </Typography>
 
-      {/* Conteúdo */}
       {loading ? (
         <Box display="flex" justifyContent="center" mt={10}>
           <CircularProgress sx={{ color: primary }} />
@@ -130,7 +126,6 @@ export default function SacAdminPage() {
                 "&:hover": { borderColor: `${primary}44` },
               }}
             >
-              {/* Linha superior: avatar + nome + tipo */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
                 <Avatar sx={{ width: 36, height: 36, background: `${primary}22`, color: primary, fontWeight: 700, fontSize: "0.9rem" }}>
                   {fb.nome?.charAt(0)?.toUpperCase() || "?"}
@@ -157,12 +152,10 @@ export default function SacAdminPage() {
                 />
               </Box>
 
-              {/* Mensagem */}
               <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.9rem", lineHeight: 1.65, pl: 0.5 }}>
                 {fb.mensagem}
               </Typography>
 
-              {/* Data */}
               <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.75rem", textAlign: "right" }}>
                 {formatData(fb.created_at)}
               </Typography>

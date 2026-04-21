@@ -3,10 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useAccessibility } from "@/context/AccessibilityContext";
 
-// Mapeamento das paletas de cor para as cores do widget em si.
-// Precisa ser independente do MUI Theme porque o widget usa CSS inline.
 const PALETAS: Record<string, { primary: string; bg: string }> = {
-  padrao:                      { primary: "#00c77a", bg: "#111827" },
+  padrao:                      { primary: "#22c55e", bg: "#111827" },
   "daltonismo-verde-vermelho": { primary: "#ffd700", bg: "#111827" },
   monocromatico:               { primary: "#ffffff", bg: "#1a1a1a" },
   "alto-contraste":            { primary: "#ffff00", bg: "#111111" },
@@ -15,7 +13,6 @@ const PALETAS: Record<string, { primary: string; bg: string }> = {
 export default function AccessibilityWidget() {
   const [open, setOpen] = useState(false);
 
-  // Refs para detectar clique fora do painel e fechar
   const panelRef = useRef<HTMLDivElement>(null);
   const btnRef   = useRef<HTMLButtonElement>(null);
 
@@ -29,10 +26,7 @@ export default function AccessibilityWidget() {
     resetarTudo,
   } = useAccessibility();
 
-  // Cores do widget sincronizadas com o esquema de cores ativo
   const { primary: cor, bg: bgPanel } = PALETAS[colorMode] ?? PALETAS.padrao;
-
-  // Exibe o tamanho da fonte como percentual relativo ao padrão (14px)
   const pct = Math.round((fontSizeModifier / 14) * 100);
 
   /** Fecha o painel ao clicar fora dele */
@@ -56,7 +50,6 @@ export default function AccessibilityWidget() {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // Opções de esquema de cores disponíveis no painel
   const colorOptions: { value: Parameters<typeof setColorMode>[0]; label: string; desc: string }[] = [
     { value: "padrao",                     label: "Padrão",         desc: "Verde/Azul" },
     { value: "daltonismo-verde-vermelho",  label: "Deuteranopia",   desc: "Amarelo/Azul" },
@@ -66,7 +59,6 @@ export default function AccessibilityWidget() {
 
   return (
     <>
-      {/* Estilos CSS inline do widget — usam `cor` para refletir o tema atual */}
       <style>{`
         .reduce-motion * { transition: none !important; animation: none !important; }
 
@@ -107,7 +99,6 @@ export default function AccessibilityWidget() {
         .font-btn:hover:not(:disabled) { background: ${cor}25; border-color: ${cor}66; }
         .font-btn:disabled             { opacity: 0.3; cursor: not-allowed; }
 
-        /* Botão FAB fixo no canto inferior direito */
         .a11y-fab {
           position: fixed;
           bottom: 28px; right: 28px;
@@ -117,16 +108,15 @@ export default function AccessibilityWidget() {
           border: none;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 20px ${cor}55;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
           transition: transform 0.2s, box-shadow 0.2s;
           z-index: 9999;
           color: #0f172a;
         }
-        .a11y-fab:hover        { transform: scale(1.08); box-shadow: 0 6px 28px ${cor}80; }
+        .a11y-fab:hover        { transform: scale(1.08); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
         .a11y-fab:focus-visible { outline: 3px solid white; outline-offset: 3px; }
       `}</style>
 
-      {/* ── Botão FAB ─────────────────────────────────────────────────── */}
       <button
         ref={btnRef}
         className="a11y-fab"
@@ -135,7 +125,6 @@ export default function AccessibilityWidget() {
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        {/* Ícone stickman inspirado no Ionicons body-outline */}
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="3.5" r="2" />
           <line x1="12" y1="5.5" x2="12" y2="13" />
@@ -145,7 +134,6 @@ export default function AccessibilityWidget() {
         </svg>
       </button>
 
-      {/* ── Painel de opções ───────────────────────────────────────────── */}
       {open && (
         <div
           ref={panelRef}
@@ -167,7 +155,6 @@ export default function AccessibilityWidget() {
             fontFamily:   "'Inter', 'Segoe UI', sans-serif",
           }}
         >
-          {/* Cabeçalho do painel */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: "0.95rem", color: cor }}>
@@ -188,7 +175,6 @@ export default function AccessibilityWidget() {
 
           <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.07)", margin: "0 0 16px" }} />
 
-          {/* Seção: Tamanho do texto */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Tamanho do Texto
@@ -209,7 +195,6 @@ export default function AccessibilityWidget() {
             </div>
           </div>
 
-          {/* Seção: Esquema de cores */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Esquema de Cores
@@ -229,7 +214,6 @@ export default function AccessibilityWidget() {
             </div>
           </div>
 
-          {/* Botão de reset geral */}
           <button
             onClick={() => { resetarTudo(); setOpen(false); }}
             style={{

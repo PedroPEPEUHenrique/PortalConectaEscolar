@@ -17,7 +17,6 @@ export default function Home() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
 
-      {/* Hero */}
       <Box sx={{ mb: { xs: 8, md: 10 }, maxWidth: 600 }}>
         <Typography variant="h3" fontWeight={700} sx={{ color: "white", lineHeight: 1.2, mb: 2.5, fontSize: { xs: "1.8rem", md: "2.4rem" } }}>
           Bem-vindo ao{" "}
@@ -29,7 +28,6 @@ export default function Home() {
         </Typography>
       </Box>
 
-      {/* Cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 3 }}>
         {cards.map((item) => (
           <Box key={item.link} sx={{

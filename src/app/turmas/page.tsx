@@ -35,17 +35,14 @@ export default function TurmasPage() {
 
   const podeAcessar = cargo === "gestor" || cargo === "admin";
 
-  // ─── estado principal ────────────────────────────────────────────────────────
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ─── modal criar/editar turma ────────────────────────────────────────────────
   const [openTurma, setOpenTurma] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [form, setForm] = useState({ nome: "", descricao: "", ano_letivo: ANO_ATUAL });
 
-  // ─── modal membros ───────────────────────────────────────────────────────────
   const [openMembros, setOpenMembros] = useState(false);
   const [turmaAtiva, setTurmaAtiva] = useState<Turma | null>(null);
   const [membros, setMembros] = useState<{ professores: Membro[]; alunos: Membro[] }>({ professores: [], alunos: [] });
@@ -55,12 +52,10 @@ export default function TurmasPage() {
   const [addProf, setAddProf] = useState<Usuario | null>(null);
   const [adicionando, setAdicionando] = useState(false);
 
-  // ─── guarda de acesso ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !podeAcessar) router.replace("/");
   }, [authLoading, podeAcessar, router]);
 
-  // ─── buscar turmas ───────────────────────────────────────────────────────────
   const buscarTurmas = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,7 +69,6 @@ export default function TurmasPage() {
 
   useEffect(() => { if (podeAcessar) buscarTurmas(); }, [podeAcessar, buscarTurmas]);
 
-  // ─── buscar usuários para autocomplete ──────────────────────────────────────
   useEffect(() => {
     if (!podeAcessar) return;
     Promise.all([
@@ -88,7 +82,6 @@ export default function TurmasPage() {
     });
   }, [podeAcessar]);
 
-  // ─── CRUD turma ──────────────────────────────────────────────────────────────
   const handleSalvarTurma = async () => {
     if (!form.nome.trim() || !/^\d{4}$/.test(form.ano_letivo)) return;
     setSalvando(true);
@@ -124,7 +117,6 @@ export default function TurmasPage() {
     setForm({ nome: "", descricao: "", ano_letivo: ANO_ATUAL });
   };
 
-  // ─── membros ─────────────────────────────────────────────────────────────────
   const abrirMembros = async (t: Turma) => {
     setTurmaAtiva(t);
     setOpenMembros(true);
@@ -188,7 +180,6 @@ export default function TurmasPage() {
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 2, md: 6 }, maxWidth: "1100px", margin: "0 auto" }}>
 
-      {/* Cabeçalho */}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { sm: "center" }, justifyContent: "space-between", mb: 5, gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ color: "white", mb: 0.5 }}>Gestão de Turmas</Typography>
@@ -201,7 +192,6 @@ export default function TurmasPage() {
         </Button>
       </Box>
 
-      {/* Lista de turmas */}
       {loading ? (
         <Box display="flex" justifyContent="center" mt={10}>
           <CircularProgress sx={{ color: primary }} />
@@ -230,7 +220,6 @@ export default function TurmasPage() {
                   "&:hover": { borderColor: `${primary}44` },
                 }}
               >
-                {/* Cabeçalho do card */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ color: "white", fontWeight: 700, fontSize: "1rem", lineHeight: 1.3 }}>
@@ -272,7 +261,6 @@ export default function TurmasPage() {
 
                 <Divider sx={{ borderColor: "rgba(255,255,255,0.06)" }} />
 
-                {/* Estatísticas */}
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
                   <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem" }}>
                     <span style={{ color: "white", fontWeight: 600 }}>{qtdAlunos}</span> aluno{qtdAlunos !== 1 ? "s" : ""}
@@ -294,7 +282,6 @@ export default function TurmasPage() {
         </Box>
       )}
 
-      {/* ─── Modal: criar/editar turma ─────────────────────────────────────────── */}
       <Dialog open={openTurma} onClose={fecharTurmaModal} PaperProps={{ sx: { ...dialogPaper, minWidth: { xs: "90vw", sm: 460 } } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: "1rem", pb: 1 }}>
           {editandoId ? "Editar Turma" : "Nova Turma"}
@@ -344,7 +331,6 @@ export default function TurmasPage() {
         </DialogActions>
       </Dialog>
 
-      {/* ─── Modal: membros da turma ───────────────────────────────────────────── */}
       <Dialog
         open={openMembros}
         onClose={() => { setOpenMembros(false); setTurmaAtiva(null); setAddAluno(null); setAddProf(null); }}
@@ -364,7 +350,6 @@ export default function TurmasPage() {
             </Box>
           ) : (
             <>
-              {/* ── Professores ── */}
               <Box>
                 <Typography sx={{ color: primary, fontWeight: 700, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: 1, mb: 1.5 }}>
                   Professores
@@ -416,7 +401,6 @@ export default function TurmasPage() {
 
               <Divider sx={{ borderColor: "rgba(255,255,255,0.07)" }} />
 
-              {/* ── Alunos ── */}
               <Box>
                 <Typography sx={{ color: primary, fontWeight: 700, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: 1, mb: 1.5 }}>
                   Alunos
