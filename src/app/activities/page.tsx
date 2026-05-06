@@ -9,6 +9,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 
 type Atividade = {
   id:              string;
@@ -29,6 +30,7 @@ const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" };
 export default function Activities() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
+  const { notificarSucesso, notificarErro } = useToast();
 
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -64,7 +66,7 @@ export default function Activities() {
         const { error: upErr } = await supabase.storage
           .from("atividades_pdfs")
           .upload(fileName, arquivoPDF);
-        if (upErr) { alert("Erro no upload do PDF: " + upErr.message); throw upErr; }
+        if (upErr) { notificarErro("Erro no upload do PDF: " + upErr.message); throw upErr; }
         const { data: urlData } = supabase.storage
           .from("atividades_pdfs")
           .getPublicUrl(fileName);
@@ -83,12 +85,14 @@ export default function Activities() {
           .from("atividades")
           .update(payload)
           .eq("id", editandoId);
-        if (error) { alert("Erro ao atualizar: " + error.message); return; }
+        if (error) { notificarErro("Erro ao atualizar atividade: " + error.message); return; }
+        notificarSucesso("Atividade atualizada com sucesso!");
       } else {
         const { error } = await supabase
           .from("atividades")
           .insert([payload]);
-        if (error) { alert("Erro ao criar: " + error.message); return; }
+        if (error) { notificarErro("Erro ao criar atividade: " + error.message); return; }
+        notificarSucesso("Atividade criada com sucesso!");
       }
 
       await buscarAtividades();
@@ -110,7 +114,8 @@ export default function Activities() {
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Confirma exclusão desta atividade?")) return;
     const { error } = await supabase.from("atividades").delete().eq("id", id);
-    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    if (error) { notificarErro("Erro ao excluir atividade: " + error.message); return; }
+    notificarSucesso("Atividade excluída com sucesso!");
     buscarAtividades();
   };
 

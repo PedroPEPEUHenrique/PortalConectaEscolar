@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode,
+} from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type AuthContextType = {
   user:    User | null;
@@ -51,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router   = useRouter();
   const pathname = usePathname();
 
+  // Mantém o último uid para o qual já buscamos cargo, evitando fetch
+  // duplicado em eventos como TOKEN_REFRESHED que só renovam o token.
+  const cargoFetchedFor = useRef<string | null>(null);
+
   /** Atualiza o cargo no estado React e no localStorage. Null limpa o cache. */
   const persistCargo = (c: string | null) => {
     setCargo(c);
@@ -61,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Busca o cargo do usuário na tabela `perfis` do Supabase e persiste. */
   const fetchCargo = async (uid: string) => {
+    if (cargoFetchedFor.current === uid) return;
+    cargoFetchedFor.current = uid;
     const { data } = await supabase
       .from("perfis")
       .select("cargo")
@@ -77,11 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(cachedUser);
       setCargo(cachedCargo);
       setLoading(false);
+      cargoFetchedFor.current = cachedUser.id;
 
-      fetchCargo(cachedUser.id);
-
+      // Revalida em background: se a sessão expirou, derruba o estado.
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session?.user) {
+          cargoFetchedFor.current = null;
           persistCargo(null);
           setUser(null);
         }
@@ -91,19 +99,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const u = session?.user ?? null;
         setUser(u);
         if (u) await fetchCargo(u.id);
-        else persistCargo(null);
+        else { cargoFetchedFor.current = null; persistCargo(null); }
         setLoading(false);
       });
     }
 
-    // INITIAL_SESSION é ignorado: já tratado acima para evitar dupla execução
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "INITIAL_SESSION") return;
+        // INITIAL_SESSION: já tratado acima
+        // TOKEN_REFRESHED / USER_UPDATED: token renovado mas sem mudança real
+        // de identidade — não recarrega cargo nem força re-render dos consumidores.
+        if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+
         const u = session?.user ?? null;
+
+        // Se o uid não mudou, nada precisa atualizar (USER_UPDATED de e-mail etc.)
+        if (u?.id && u.id === cargoFetchedFor.current) return;
+
         setUser(u);
         if (u) await fetchCargo(u.id);
-        else persistCargo(null);
+        else { cargoFetchedFor.current = null; persistCargo(null); }
         setLoading(false);
       }
     );
@@ -118,8 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user  && pathname === "/login") router.push("/activities");
   }, [user, loading, pathname, router]);
 
+  // Memoiza o objeto de contexto para que consumidores só re-renderizem
+  // quando user/cargo/loading mudarem de fato.
+  const value = useMemo<AuthContextType>(
+    () => ({ user, cargo, loading }),
+    [user, cargo, loading]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, cargo, loading }}>
+    <AuthContext.Provider value={value}>
       {loading ? (
         <div style={{
           display: "flex", height: "100vh",

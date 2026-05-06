@@ -1,11 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTheme } from "@mui/material";
 
 /**
  * Extrai as cores do tema MUI atual e retorna estilos reutilizáveis
  * para inputs, botões e dialogs. As cores mudam automaticamente quando
  * o usuário troca o esquema de cores no widget de acessibilidade.
+ *
+ * Os objetos retornados são memoizados pela cor do tema, evitando que
+ * o Emotion precise rehasher os mesmos `sx` a cada render do consumidor.
  */
 export function useColors() {
   const theme = useTheme();
@@ -15,7 +19,7 @@ export function useColors() {
   const paper    = theme.palette.background.paper;
   const textMain = theme.palette.text.primary;
 
-  return {
+  return useMemo(() => ({
     primary,
     bg,
     paper,
@@ -57,5 +61,5 @@ export function useColors() {
       borderRadius: "4px",
       fontFamily:  "'Inclusive Sans', sans-serif",
     },
-  };
+  }), [primary, bg, paper, textMain]);
 }

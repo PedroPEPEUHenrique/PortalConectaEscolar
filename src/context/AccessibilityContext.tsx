@@ -143,20 +143,32 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     });
   }, [fontSizeModifier, colorMode]);
 
+  // Memoiza o objeto de contexto para que consumidores não re-renderizem
+  // quando o provider re-renderiza por outros motivos.
+  const ctxValue = useMemo<AccessibilityContextType>(() => ({
+    fontSizeModifier,
+    aumentarFonte,
+    diminuirFonte,
+    resetarFonte,
+    colorMode,
+    setColorMode,
+    reducaoMovimento,
+    toggleReducaoMovimento,
+    resetarTudo,
+  }), [
+    fontSizeModifier,
+    aumentarFonte,
+    diminuirFonte,
+    resetarFonte,
+    colorMode,
+    setColorMode,
+    reducaoMovimento,
+    toggleReducaoMovimento,
+    resetarTudo,
+  ]);
+
   return (
-    <AccessibilityContext.Provider
-      value={{
-        fontSizeModifier,
-        aumentarFonte,
-        diminuirFonte,
-        resetarFonte,
-        colorMode,
-        setColorMode,
-        reducaoMovimento,
-        toggleReducaoMovimento,
-        resetarTudo,
-      }}
-    >
+    <AccessibilityContext.Provider value={ctxValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}

@@ -9,6 +9,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 
 type Evento = {
   id:     string;
@@ -22,6 +23,7 @@ const FORM_VAZIO = { data: "", evento: "", tipo: "Evento" };
 export default function Calendario() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
+  const { notificarSucesso, notificarErro } = useToast();
 
   const [eventos,    setEventos]    = useState<Evento[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -47,7 +49,7 @@ export default function Calendario() {
   const handleSalvar = async () => {
     if (!form.data || !form.evento.trim()) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.data)) {
-      alert("A data precisa estar no formato YYYY-MM-DD (ex: 2025-06-10).");
+      notificarErro("A data precisa estar no formato YYYY-MM-DD (ex: 2025-06-10).");
       return;
     }
     setSalvando(true);
@@ -60,10 +62,12 @@ export default function Calendario() {
 
       if (editandoId) {
         const { error } = await supabase.from("eventos").update(payload).eq("id", editandoId);
-        if (error) { alert("Erro ao atualizar: " + error.message); return; }
+        if (error) { notificarErro("Erro ao atualizar calendário: " + error.message); return; }
+        notificarSucesso("Calendário atualizado com sucesso!");
       } else {
         const { error } = await supabase.from("eventos").insert([payload]);
-        if (error) { alert("Erro ao criar: " + error.message); return; }
+        if (error) { notificarErro("Erro ao criar calendário: " + error.message); return; }
+        notificarSucesso("Calendário criado com sucesso!");
       }
 
       await buscarEventos();
@@ -84,7 +88,8 @@ export default function Calendario() {
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Deseja excluir este evento?")) return;
     const { error } = await supabase.from("eventos").delete().eq("id", id);
-    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    if (error) { notificarErro("Erro ao excluir calendário: " + error.message); return; }
+    notificarSucesso("Calendário excluído com sucesso!");
     buscarEventos();
   };
 
