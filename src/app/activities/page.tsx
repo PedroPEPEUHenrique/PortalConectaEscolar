@@ -39,6 +39,8 @@ export default function Activities() {
   const [form,       setForm]       = useState(FORM_VAZIO);
   const [arquivoPDF, setArquivoPDF] = useState<File | null>(null);
   const [salvando,   setSalvando]   = useState(false);
+  const [confirmar,  setConfirmar]  = useState<Atividade | null>(null);
+  const [excluindo,  setExcluindo]  = useState(false);
 
   const podeGerenciar = userRole === "professor" || userRole === "admin";
 
@@ -111,11 +113,14 @@ export default function Activities() {
     setOpenModal(true);
   };
 
-  const handleExcluir = async (id: string) => {
-    if (!window.confirm("Confirma exclusão desta atividade?")) return;
-    const { error } = await supabase.from("atividades").delete().eq("id", id);
+  const confirmarExclusao = async () => {
+    if (!confirmar) return;
+    setExcluindo(true);
+    const { error } = await supabase.from("atividades").delete().eq("id", confirmar.id);
+    setExcluindo(false);
     if (error) { notificarErro("Erro ao excluir atividade: " + error.message); return; }
     notificarSucesso("Atividade excluída com sucesso!");
+    setConfirmar(null);
     buscarAtividades();
   };
 
@@ -209,7 +214,7 @@ export default function Activities() {
                     >
                       Editar
                     </Button>
-                    <Button size="small" variant="text" onClick={() => handleExcluir(item.id)}
+                    <Button size="small" variant="text" onClick={() => setConfirmar(item)}
                       sx={{ color: "rgba(248,113,113,0.5)", fontSize: "0.75rem", px: 1, "&:hover": { color: "#f87171" } }}
                       aria-label={`Excluir: ${item.titulo}`}
                     >
@@ -278,6 +283,59 @@ export default function Activities() {
             sx={btnPrimary}
           >
             {salvando ? "Salvando..." : editandoId ? "Atualizar" : "Salvar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!confirmar}
+        onClose={() => !excluindo && setConfirmar(null)}
+        aria-labelledby="confirmar-excluir-titulo"
+        aria-describedby="confirmar-excluir-desc"
+        PaperProps={{ sx: { ...dialogPaper, maxWidth: 380, width: "90vw", boxShadow: "none" } }}
+      >
+        <DialogTitle
+          id="confirmar-excluir-titulo"
+          sx={{ fontWeight: 700, fontSize: "0.95rem", pb: 1 }}
+        >
+          Excluir atividade?
+        </DialogTitle>
+        <DialogContent sx={{ pt: "8px !important" }}>
+          <Typography
+            id="confirmar-excluir-desc"
+            sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", lineHeight: 1.5 }}
+          >
+            Esta ação não pode ser desfeita.
+            {confirmar?.titulo && (
+              <Box component="span" sx={{ display: "block", mt: 1, color: "white", fontWeight: 600 }}>
+                {confirmar.titulo}
+              </Box>
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmar(null)}
+            disabled={excluindo}
+            sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem" }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={confirmarExclusao}
+            disabled={excluindo}
+            variant="contained"
+            sx={{
+              background: "#ef4444",
+              color: "white",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              boxShadow: "none",
+              "&:hover":    { background: "#dc2626", boxShadow: "none" },
+              "&:disabled": { background: "rgba(239,68,68,0.4)", color: "rgba(255,255,255,0.6)" },
+            }}
+          >
+            {excluindo ? "Excluindo..." : "Excluir"}
           </Button>
         </DialogActions>
       </Dialog>
