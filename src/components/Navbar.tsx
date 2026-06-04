@@ -20,6 +20,7 @@ const BASE_MENU = [
   { label: "Atividades",   path: "/activities" },
   { label: "Calendário",   path: "/calendario" },
   { label: "Comunidade",   path: "/comunidade" },
+  { label: "SAC",          path: "/feedback" },
 ];
 
 const ADMIN_MENU = [

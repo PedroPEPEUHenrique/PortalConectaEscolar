@@ -4,6 +4,7 @@ import { Box } from "@mui/material";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAccessibility } from "@/context/AccessibilityContext";
+import { usePathname } from "next/navigation";
 
 const BACKGROUNDS: Record<string, string> = {
   padrao:                      "#0f172a",
@@ -14,6 +15,8 @@ const BACKGROUNDS: Record<string, string> = {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { colorMode } = useAccessibility();
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/login";
 
   return (
     <Box
@@ -25,11 +28,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         fontFamily: "'Inclusive Sans', sans-serif",
       }}
     >
-      <Navbar />
+      {!isLoginPage && <Navbar />}
       <Box component="main" id="conteudo-principal" sx={{ flex: 1 }}>
         {children}
       </Box>
-      <Footer />
+      {!isLoginPage && <Footer />}
     </Box>
   );
 }
