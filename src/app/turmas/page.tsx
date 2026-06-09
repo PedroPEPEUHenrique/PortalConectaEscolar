@@ -20,7 +20,7 @@ type Turma = {
   descricao: string;
   ano_letivo: string;
   created_at: string;
-  turma_alunos: { count: number }[];
+  turma_alunos: { aluno_id: string }[];
   turma_professores: { perfis: { id: string; email: string; nome_completo: string | null } }[];
 };
 
@@ -61,13 +61,14 @@ export default function TurmasPage() {
   const buscarTurmas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/turmas");
+      const res = await fetch("/api/turmas", { cache: "no-store" });
       const d = await res.json();
       if (res.ok) setTurmas(d);
+      else notificarErro(d.erro ?? "Erro ao carregar turmas");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notificarErro]);
 
   useEffect(() => { if (podeAcessar) buscarTurmas(); }, [podeAcessar, buscarTurmas]);
 
@@ -215,7 +216,7 @@ export default function TurmasPage() {
       ) : (
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", lg: "repeat(3,1fr)" }, gap: 3 }}>
           {turmas.map((t) => {
-            const qtdAlunos = t.turma_alunos?.[0]?.count ?? 0;
+            const qtdAlunos = t.turma_alunos?.length ?? 0;
             const professores = t.turma_professores?.map((tp) => tp.perfis) ?? [];
             return (
               <Box

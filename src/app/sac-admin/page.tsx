@@ -142,9 +142,9 @@ export default function SacAdminPage() {
                   label={fb.tipo}
                   size="small"
                   sx={{
-                    background: `${CHIP_COLORS[fb.tipo] ?? primary}22`,
-                    color: CHIP_COLORS[fb.tipo] ?? primary,
-                    border: `1px solid ${CHIP_COLORS[fb.tipo] ?? primary}44`,
+                    background: "transparent",
+                    color: `${CHIP_COLORS[fb.tipo] ?? primary}cc`,
+                    border: "none",
                     fontWeight: 600,
                     fontSize: "0.72rem",
                     height: 24,

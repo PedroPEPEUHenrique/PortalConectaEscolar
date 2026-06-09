@@ -201,9 +201,9 @@ export default function Activities() {
                   sx={{
                     fontWeight: 600,
                     fontSize:   "0.75rem",
-                    background: `${STATUS_CORES[item.status] ?? "#6b7280"}22`,
-                    color:      STATUS_CORES[item.status] ?? "#9ca3af",
-                    border:     `1px solid ${STATUS_CORES[item.status] ?? "#6b7280"}44`,
+                    background: "transparent",
+                    color:      `${STATUS_CORES[item.status] ?? "#9ca3af"}cc`,
+                    border:     "none",
                   }}
                 />
                 {podeGerenciar && (

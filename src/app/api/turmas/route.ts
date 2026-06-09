@@ -13,7 +13,7 @@ export async function GET() {
   const sb = getSupabaseAdmin();
   const { data, error } = await sb.from("turmas").select(`
     id, nome, descricao, ano_letivo, created_at,
-    turma_alunos(count),
+    turma_alunos(aluno_id),
     turma_professores(professor_id, perfis(id, email, nome_completo))
   `).order("ano_letivo", { ascending: false }).order("nome", { ascending: true });
   if (error) return NextResponse.json({ erro: "Falha ao buscar turmas" }, { status: 400, headers: sec });
