@@ -28,7 +28,7 @@ export default function Home() {
         </Typography>
       </Box>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 3 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 7 }}>
         {cards.map((item) => (
           <Box key={item.link} sx={{
             background: "rgba(255,255,255,0.03)",

@@ -29,7 +29,7 @@ const AccessibilityContext = createContext<AccessibilityContextType | undefined>
 const STORAGE_KEY = "portal-escolar-acessibilidade";
 
 const PALETAS: Record<ColorMode, { primary: string; secondary: string; bg: string; paper: string }> = {
-  padrao:                      { primary: "#22c55e", secondary: "#60a5fa", bg: "#0f172a", paper: "#111827" },
+  padrao:                      { primary: "#3ea363", secondary: "#5c8dbf", bg: "#0f172a", paper: "#111827" },
   "daltonismo-verde-vermelho": { primary: "#ffd700", secondary: "#0055ff", bg: "#0f172a", paper: "#111827" },
   monocromatico:               { primary: "#ffffff", secondary: "#cccccc", bg: "#0a0a0a", paper: "#1a1a1a" },
   "alto-contraste":            { primary: "#ffff00", secondary: "#ff6600", bg: "#000000", paper: "#111111" },

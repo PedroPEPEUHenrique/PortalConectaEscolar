@@ -24,7 +24,6 @@ const BASE_MENU = [
 ];
 
 const ADMIN_MENU = [
-  { label: "Turmas",       path: "/turmas" },
   { label: "Mensagens SAC", path: "/sac-admin" },
 ];
 

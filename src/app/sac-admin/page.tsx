@@ -21,10 +21,10 @@ type Feedback = {
 const TIPOS = ["Todos", "Elogio", "Sugestão", "Reclamação", "Problema Técnico"];
 
 const CHIP_COLORS: Record<string, string> = {
-  Elogio: "#22c55e",
-  Sugestão: "#3b82f6",
-  Reclamação: "#f87171",
-  "Problema Técnico": "#f59e0b",
+  Elogio:             "#3ea363",
+  Sugestão:           "#5b8ecf",
+  Reclamação:         "#b86060",
+  "Problema Técnico": "#c48930",
 };
 
 function formatData(iso: string) {
@@ -122,8 +122,6 @@ export default function SacAdminPage() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 1.5,
-                transition: "border-color 0.2s",
-                "&:hover": { borderColor: `${primary}44` },
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
@@ -134,9 +132,11 @@ export default function SacAdminPage() {
                   <Typography sx={{ color: "white", fontWeight: 600, fontSize: "0.95rem", lineHeight: 1.2 }}>
                     {fb.nome || "Anônimo"}
                   </Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.78rem" }}>
-                    {fb.email || "—"}
-                  </Typography>
+                  {fb.email && fb.email !== "anonimo@portal.com" && (
+                    <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.78rem" }}>
+                      {fb.email}
+                    </Typography>
+                  )}
                 </Box>
                 <Chip
                   label={fb.tipo}

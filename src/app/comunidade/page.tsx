@@ -8,7 +8,6 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 
 type Post = {
   id:       string;
@@ -21,7 +20,6 @@ const FORM_VAZIO = { autor: "", mensagem: "" };
 export default function Comunidade() {
   const { primary, bg, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
-  const { notificarSucesso, notificarErro } = useToast();
 
   const [posts,      setPosts]      = useState<Post[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -52,12 +50,10 @@ export default function Comunidade() {
 
       if (editandoId) {
         const { error } = await supabase.from("comunidade").update(payload).eq("id", editandoId);
-        if (error) { notificarErro("Erro ao atualizar comunidade: " + error.message); return; }
-        notificarSucesso("Comunidade atualizada com sucesso!");
+        if (error) { return; }
       } else {
         const { error } = await supabase.from("comunidade").insert([payload]);
-        if (error) { notificarErro("Erro ao publicar comunidade: " + error.message); return; }
-        notificarSucesso("Comunidade publicada com sucesso!");
+        if (error) { return; }
       }
 
       await buscarPosts();
@@ -78,8 +74,7 @@ export default function Comunidade() {
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Confirma exclusão deste aviso?")) return;
     const { error } = await supabase.from("comunidade").delete().eq("id", id);
-    if (error) { notificarErro("Erro ao excluir comunidade: " + error.message); return; }
-    notificarSucesso("Comunidade excluída com sucesso!");
+    if (error) { return; }
     buscarPosts();
   };
 

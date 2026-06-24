@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Box, Typography, Chip, CircularProgress, Button,
+  Box, Typography, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 
 type Evento = {
   id:     string;
@@ -23,7 +22,6 @@ const FORM_VAZIO = { data: "", evento: "", tipo: "Evento" };
 export default function Calendario() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
-  const { notificarSucesso, notificarErro } = useToast();
 
   const [eventos,    setEventos]    = useState<Evento[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -49,7 +47,6 @@ export default function Calendario() {
   const handleSalvar = async () => {
     if (!form.data || !form.evento.trim()) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.data)) {
-      notificarErro("A data precisa estar no formato YYYY-MM-DD (ex: 2025-06-10).");
       return;
     }
     setSalvando(true);
@@ -62,12 +59,10 @@ export default function Calendario() {
 
       if (editandoId) {
         const { error } = await supabase.from("eventos").update(payload).eq("id", editandoId);
-        if (error) { notificarErro("Erro ao atualizar calendário: " + error.message); return; }
-        notificarSucesso("Calendário atualizado com sucesso!");
+        if (error) { return; }
       } else {
         const { error } = await supabase.from("eventos").insert([payload]);
-        if (error) { notificarErro("Erro ao criar calendário: " + error.message); return; }
-        notificarSucesso("Calendário criado com sucesso!");
+        if (error) { return; }
       }
 
       await buscarEventos();
@@ -88,8 +83,7 @@ export default function Calendario() {
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Deseja excluir este evento?")) return;
     const { error } = await supabase.from("eventos").delete().eq("id", id);
-    if (error) { notificarErro("Erro ao excluir calendário: " + error.message); return; }
-    notificarSucesso("Calendário excluído com sucesso!");
+    if (error) { return; }
     buscarEventos();
   };
 
@@ -150,17 +144,6 @@ export default function Calendario() {
                 {item.evento}
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "auto", flexWrap: "wrap", gap: 1 }}>
-                <Chip
-                  label={item.tipo}
-                  size="small"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize:   "0.75rem",
-                    background: `${primary}22`,
-                    color:      primary,
-                    border:     `1px solid ${primary}44`,
-                  }}
-                />
                 {podeGerenciar && (
                   <Box display="flex" gap={1}>
                     <Button size="small" variant="text" onClick={() => handleEditar(item.id)}

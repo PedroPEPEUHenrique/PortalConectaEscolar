@@ -12,7 +12,6 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 
 type Turma = {
   id: string;
@@ -33,7 +32,6 @@ export default function TurmasPage() {
   const { cargo, loading: authLoading } = useAuth();
   const router = useRouter();
   const { primary, bg, paper, inputStyle, btnPrimary, btnOutlined, dialogPaper } = useColors();
-  const { notificarSucesso, notificarErro } = useToast();
 
   const podeAcessar = cargo === "gestor" || cargo === "admin";
 
@@ -64,11 +62,10 @@ export default function TurmasPage() {
       const res = await fetch("/api/turmas", { cache: "no-store" });
       const d = await res.json();
       if (res.ok) setTurmas(d);
-      else notificarErro(d.erro ?? "Erro ao carregar turmas");
     } finally {
       setLoading(false);
     }
-  }, [notificarErro]);
+  }, []);
 
   useEffect(() => { if (podeAcessar) buscarTurmas(); }, [podeAcessar, buscarTurmas]);
 
@@ -97,12 +94,8 @@ export default function TurmasPage() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
-        notificarSucesso(editandoId ? "Turma atualizada com sucesso!" : "Turma criada com sucesso!");
         fecharTurmaModal();
         buscarTurmas();
-      } else {
-        const e = await res.json();
-        notificarErro(e.erro ?? "Erro ao salvar turma");
       }
     } finally { setSalvando(false); }
   };
@@ -117,10 +110,7 @@ export default function TurmasPage() {
     if (!confirm("Excluir esta turma? Todos os vínculos serão removidos.")) return;
     const res = await fetch(`/api/turmas/${id}`, { method: "DELETE" });
     if (res.ok) {
-      notificarSucesso("Turma excluída com sucesso!");
       buscarTurmas();
-    } else {
-      notificarErro("Erro ao excluir turma");
     }
   };
 

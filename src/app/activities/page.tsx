@@ -9,7 +9,6 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 
 type Atividade = {
   id:              string;
@@ -20,9 +19,9 @@ type Atividade = {
 };
 
 const STATUS_CORES: Record<string, string> = {
-  "Concluído":    "#22c55e",
-  "Em andamento": "#3b82f6",
-  "Pendente":     "#f59e0b",
+  "Concluído":    "#3ea363",
+  "Em andamento": "#5b8ecf",
+  "Pendente":     "#c48930",
 };
 
 const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" };
@@ -30,7 +29,6 @@ const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" };
 export default function Activities() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
-  const { notificarSucesso, notificarErro } = useToast();
 
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -68,7 +66,7 @@ export default function Activities() {
         const { error: upErr } = await supabase.storage
           .from("atividades_pdfs")
           .upload(fileName, arquivoPDF);
-        if (upErr) { notificarErro("Erro no upload do PDF: " + upErr.message); throw upErr; }
+        if (upErr) { throw upErr; }
         const { data: urlData } = supabase.storage
           .from("atividades_pdfs")
           .getPublicUrl(fileName);
@@ -87,14 +85,12 @@ export default function Activities() {
           .from("atividades")
           .update(payload)
           .eq("id", editandoId);
-        if (error) { notificarErro("Erro ao atualizar atividade: " + error.message); return; }
-        notificarSucesso("Atividade atualizada com sucesso!");
+        if (error) { return; }
       } else {
         const { error } = await supabase
           .from("atividades")
           .insert([payload]);
-        if (error) { notificarErro("Erro ao criar atividade: " + error.message); return; }
-        notificarSucesso("Atividade criada com sucesso!");
+        if (error) { return; }
       }
 
       await buscarAtividades();
@@ -118,8 +114,7 @@ export default function Activities() {
     setExcluindo(true);
     const { error } = await supabase.from("atividades").delete().eq("id", confirmar.id);
     setExcluindo(false);
-    if (error) { notificarErro("Erro ao excluir atividade: " + error.message); return; }
-    notificarSucesso("Atividade excluída com sucesso!");
+    if (error) { return; }
     setConfirmar(null);
     buscarAtividades();
   };
