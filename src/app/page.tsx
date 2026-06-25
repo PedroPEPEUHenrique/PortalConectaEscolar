@@ -12,7 +12,7 @@ const cards = [
 ];
 
 export default function Home() {
-  const { primary, bg, btnOutlined } = useColors();
+  const { primary, bg, btnPrimary } = useColors();
 
   return (
     <Box sx={{ minHeight: "100vh", background: bg, pt: { xs: 6, md: 8 }, pb: 10, px: { xs: 3, md: 6 }, maxWidth: "1200px", margin: "0 auto" }}>
@@ -35,15 +35,13 @@ export default function Home() {
             border: "1px solid rgba(255,255,255,0.07)",
             borderRadius: "4px", p: 3.5,
             display: "flex", flexDirection: "column", gap: 2,
-            transition: "border-color 0.2s, background 0.2s",
-            "&:hover": { borderColor: `${primary}44`, background: `${primary}06` },
           }}>
             <Box>
               <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "white", mb: 1 }}>{item.titulo}</Typography>
               <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", lineHeight: 1.6 }}>{item.descricao}</Typography>
             </Box>
             <Link href={item.link} style={{ textDecoration: "none", marginTop: "auto" }}>
-              <Button fullWidth variant="outlined" size="small" sx={btnOutlined}>Acessar</Button>
+              <Button fullWidth variant="contained" size="small" sx={btnPrimary}>Acessar</Button>
             </Link>
           </Box>
         ))}
