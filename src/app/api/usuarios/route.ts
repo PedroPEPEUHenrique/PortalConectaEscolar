@@ -1,23 +1,11 @@
-import { NextResponse, NextRequest } from "next/server";
-import { z } from "zod";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import type { NextRequest } from "next/server";
+import { responderOk, rota, validarParam } from "@/lib/http";
+import { cargoSchema } from "@/modules/perfis/schema";
+import { listarUsuarios } from "@/modules/perfis/service";
 
-const CargoQuery = z.enum(["aluno", "professor", "gestor", "admin"]);
-const sec = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" };
-
-export async function GET(request: NextRequest) {
+export const GET = rota(async (request: NextRequest) => {
   const cargo = request.nextUrl.searchParams.get("cargo");
-  const sb = getSupabaseAdmin();
+  const cargoFiltro = cargo ? validarParam(cargoSchema, cargo, "Cargo") : undefined;
 
-  let query = sb.from("perfis").select("id, email, nome_completo, cargo");
-  if (cargo) {
-    const parsed = CargoQuery.safeParse(cargo);
-    if (!parsed.success)
-      return NextResponse.json({ erro: "Cargo inválido" }, { status: 422, headers: sec });
-    query = query.eq("cargo", parsed.data);
-  }
-
-  const { data, error } = await query.order("email", { ascending: true });
-  if (error) return NextResponse.json({ erro: "Falha ao buscar usuários" }, { status: 400, headers: sec });
-  return NextResponse.json(data, { headers: sec });
-}
+  return responderOk(await listarUsuarios(cargoFiltro));
+});

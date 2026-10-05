@@ -7,16 +7,10 @@ import {
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
-
-type Atividade = {
-  id:              string;
-  titulo:          string;
-  descricao:       string;
-  status:          string;
-  arquivo_pdf_url?: string | null;
-};
+import { podeGerenciarAtividades } from "@/modules/atividades/policy";
+import type { Atividade, StatusAtividade } from "@/modules/atividades/schema";
 
 const STATUS_CORES: Record<string, string> = {
   "Concluído":    "#3ea363",
@@ -24,7 +18,7 @@ const STATUS_CORES: Record<string, string> = {
   "Pendente":     "#c48930",
 };
 
-const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" };
+const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" as StatusAtividade };
 
 export default function Activities() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
@@ -40,16 +34,15 @@ export default function Activities() {
   const [confirmar,  setConfirmar]  = useState<Atividade | null>(null);
   const [excluindo,  setExcluindo]  = useState(false);
 
-  const podeGerenciar = userRole === "professor" || userRole === "admin";
+  const podeGerenciar = podeGerenciarAtividades(userRole);
 
   const buscarAtividades = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("atividades")
-      .select("id, titulo, descricao, status, arquivo_pdf_url, created_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (!error && data) setAtividades(data as Atividade[]);
-    setLoading(false);
+    try {
+      setAtividades(await api.atividades.listar());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { buscarAtividades(); }, [buscarAtividades]);
@@ -58,40 +51,17 @@ export default function Activities() {
     if (!form.titulo.trim()) return;
     setSalvando(true);
     try {
-      let pdfUrl: string | null = null;
+      const pdfUrl = arquivoPDF ? (await api.atividades.enviarPdf(arquivoPDF)).url : null;
 
-      if (arquivoPDF) {
-        const ext      = arquivoPDF.name.split(".").pop();
-        const fileName = `atividade-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("atividades_pdfs")
-          .upload(fileName, arquivoPDF);
-        if (upErr) { throw upErr; }
-        const { data: urlData } = supabase.storage
-          .from("atividades_pdfs")
-          .getPublicUrl(fileName);
-        pdfUrl = urlData.publicUrl;
-      }
-
-      const payload: Partial<Atividade> = {
+      const payload = {
         titulo:    form.titulo.trim(),
         descricao: form.descricao.trim(),
         status:    form.status,
+        ...(pdfUrl ? { arquivo_pdf_url: pdfUrl } : {}),
       };
-      if (pdfUrl) payload.arquivo_pdf_url = pdfUrl;
 
-      if (editandoId) {
-        const { error } = await supabase
-          .from("atividades")
-          .update(payload)
-          .eq("id", editandoId);
-        if (error) { return; }
-      } else {
-        const { error } = await supabase
-          .from("atividades")
-          .insert([payload]);
-        if (error) { return; }
-      }
+      if (editandoId) await api.atividades.atualizar(editandoId, payload);
+      else            await api.atividades.criar(payload);
 
       await buscarAtividades();
       fecharModal();
@@ -112,11 +82,14 @@ export default function Activities() {
   const confirmarExclusao = async () => {
     if (!confirmar) return;
     setExcluindo(true);
-    const { error } = await supabase.from("atividades").delete().eq("id", confirmar.id);
-    setExcluindo(false);
-    if (error) { return; }
-    setConfirmar(null);
-    buscarAtividades();
+    try {
+      await api.atividades.excluir(confirmar.id);
+      setConfirmar(null);
+      buscarAtividades();
+    } catch {
+    } finally {
+      setExcluindo(false);
+    }
   };
 
   const fecharModal = () => {
@@ -250,7 +223,7 @@ export default function Activities() {
           <TextField
             select label="Status" fullWidth
             value={form.status}
-            onChange={e => setForm({ ...form, status: e.target.value })}
+            onChange={e => setForm({ ...form, status: e.target.value as StatusAtividade })}
             sx={inputStyle}
             SelectProps={{ MenuProps: { PaperProps: { sx: { background: paper, color: "white" } } } }}
           >

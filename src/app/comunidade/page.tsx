@@ -6,8 +6,9 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
+import { podeGerenciarComunidade } from "@/modules/comunidade/policy";
 
 type Post = {
   id:       string;
@@ -28,16 +29,15 @@ export default function Comunidade() {
   const [salvando,   setSalvando]   = useState(false);
   const [form,       setForm]       = useState(FORM_VAZIO);
 
-  const podeGerenciar = userRole === "gestor" || userRole === "admin";
+  const podeGerenciar = podeGerenciarComunidade(userRole);
 
   const buscarPosts = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("comunidade")
-      .select("id, autor, mensagem, created_at")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (!error && data) setPosts(data as Post[]);
-    setLoading(false);
+    try {
+      setPosts(await api.comunidade.listar());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { buscarPosts(); }, [buscarPosts]);
@@ -48,16 +48,12 @@ export default function Comunidade() {
     try {
       const payload = { autor: form.autor.trim(), mensagem: form.mensagem.trim() };
 
-      if (editandoId) {
-        const { error } = await supabase.from("comunidade").update(payload).eq("id", editandoId);
-        if (error) { return; }
-      } else {
-        const { error } = await supabase.from("comunidade").insert([payload]);
-        if (error) { return; }
-      }
+      if (editandoId) await api.comunidade.atualizar(editandoId, payload);
+      else            await api.comunidade.criar(payload);
 
       await buscarPosts();
       fecharModal();
+    } catch {
     } finally {
       setSalvando(false);
     }
@@ -73,9 +69,10 @@ export default function Comunidade() {
 
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Confirma exclusão deste aviso?")) return;
-    const { error } = await supabase.from("comunidade").delete().eq("id", id);
-    if (error) { return; }
-    buscarPosts();
+    try {
+      await api.comunidade.excluir(id);
+      buscarPosts();
+    } catch {}
   };
 
   const fecharModal = () => {

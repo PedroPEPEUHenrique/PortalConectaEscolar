@@ -12,19 +12,10 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
-
-type Turma = {
-  id: string;
-  nome: string;
-  descricao: string;
-  ano_letivo: string;
-  created_at: string;
-  turma_alunos: { aluno_id: string }[];
-  turma_professores: { perfis: { id: string; email: string; nome_completo: string | null } }[];
-};
-
-type Usuario = { id: string; email: string; nome_completo: string | null; cargo: string };
-type Membro = { id: string; email: string; nome_completo: string | null };
+import { api, ErroApi } from "@/lib/api-client";
+import { podeGerenciarTurmas } from "@/modules/turmas/policy";
+import type { MembroTurma, Turma } from "@/modules/turmas/schema";
+import type { Perfil } from "@/modules/perfis/schema";
 
 const ANO_ATUAL = new Date().getFullYear().toString();
 
@@ -33,7 +24,7 @@ export default function TurmasPage() {
   const router = useRouter();
   const { primary, bg, paper, inputStyle, btnPrimary, btnOutlined, dialogPaper } = useColors();
 
-  const podeAcessar = cargo === "gestor" || cargo === "admin";
+  const podeAcessar = podeGerenciarTurmas(cargo);
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,11 +36,11 @@ export default function TurmasPage() {
 
   const [openMembros, setOpenMembros] = useState(false);
   const [turmaAtiva, setTurmaAtiva] = useState<Turma | null>(null);
-  const [membros, setMembros] = useState<{ professores: Membro[]; alunos: Membro[] }>({ professores: [], alunos: [] });
+  const [membros, setMembros] = useState<{ professores: MembroTurma[]; alunos: MembroTurma[] }>({ professores: [], alunos: [] });
   const [loadingMembros, setLoadingMembros] = useState(false);
-  const [usuarios, setUsuarios] = useState<{ alunos: Usuario[]; professores: Usuario[] }>({ alunos: [], professores: [] });
-  const [addAluno, setAddAluno] = useState<Usuario | null>(null);
-  const [addProf, setAddProf] = useState<Usuario | null>(null);
+  const [usuarios, setUsuarios] = useState<{ alunos: Perfil[]; professores: Perfil[] }>({ alunos: [], professores: [] });
+  const [addAluno, setAddAluno] = useState<Perfil | null>(null);
+  const [addProf, setAddProf] = useState<Perfil | null>(null);
   const [adicionando, setAdicionando] = useState(false);
 
   useEffect(() => {
@@ -59,9 +50,8 @@ export default function TurmasPage() {
   const buscarTurmas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/turmas", { cache: "no-store" });
-      const d = await res.json();
-      if (res.ok) setTurmas(d);
+      setTurmas(await api.turmas.listar());
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -71,32 +61,21 @@ export default function TurmasPage() {
 
   useEffect(() => {
     if (!podeAcessar) return;
-    Promise.all([
-      fetch("/api/usuarios?cargo=aluno").then((r) => r.json()),
-      fetch("/api/usuarios?cargo=professor").then((r) => r.json()),
-    ]).then(([al, pr]) => {
-      setUsuarios({
-        alunos: Array.isArray(al) ? al : [],
-        professores: Array.isArray(pr) ? pr : [],
-      });
-    });
+    Promise.all([api.usuarios.listar("aluno"), api.usuarios.listar("professor")])
+      .then(([alunos, professores]) => setUsuarios({ alunos, professores }))
+      .catch(() => setUsuarios({ alunos: [], professores: [] }));
   }, [podeAcessar]);
 
   const handleSalvarTurma = async () => {
     if (!form.nome.trim() || !/^\d{4}$/.test(form.ano_letivo)) return;
     setSalvando(true);
     try {
-      const url = editandoId ? `/api/turmas/${editandoId}` : "/api/turmas";
-      const method = editandoId ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        fecharTurmaModal();
-        buscarTurmas();
-      }
+      if (editandoId) await api.turmas.atualizar(editandoId, form);
+      else            await api.turmas.criar(form);
+
+      fecharTurmaModal();
+      buscarTurmas();
+    } catch {
     } finally { setSalvando(false); }
   };
 
@@ -108,10 +87,10 @@ export default function TurmasPage() {
 
   const handleExcluir = async (id: string) => {
     if (!confirm("Excluir esta turma? Todos os vínculos serão removidos.")) return;
-    const res = await fetch(`/api/turmas/${id}`, { method: "DELETE" });
-    if (res.ok) {
+    try {
+      await api.turmas.excluir(id);
       buscarTurmas();
-    }
+    } catch {}
   };
 
   const fecharTurmaModal = () => {
@@ -125,52 +104,43 @@ export default function TurmasPage() {
     setOpenMembros(true);
     setLoadingMembros(true);
     try {
-      const res = await fetch(`/api/turmas/${t.id}/membros`);
-      const d = await res.json();
-      if (res.ok) setMembros(d);
+      setMembros(await api.turmas.listarMembros(t.id));
+    } catch {
     } finally { setLoadingMembros(false); }
   };
 
   const recarregarMembros = async () => {
     if (!turmaAtiva) return;
-    const res = await fetch(`/api/turmas/${turmaAtiva.id}/membros`);
-    const d = await res.json();
-    if (res.ok) setMembros(d);
+    try {
+      setMembros(await api.turmas.listarMembros(turmaAtiva.id));
+    } catch {}
     buscarTurmas();
   };
 
-  const adicionarMembro = async (user: Usuario, tipo: "aluno" | "professor") => {
+  const adicionarMembro = async (user: Perfil, tipo: "aluno" | "professor") => {
     if (!turmaAtiva) return;
     setAdicionando(true);
     try {
-      const res = await fetch(`/api/turmas/${turmaAtiva.id}/membros`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, tipo }),
-      });
-      if (res.ok) {
-        recarregarMembros();
-        if (tipo === "aluno") setAddAluno(null);
-        else setAddProf(null);
-      } else {
-        const e = await res.json();
-        alert(e.erro ?? "Erro ao adicionar");
-      }
+      await api.turmas.adicionarMembro(turmaAtiva.id, { user_id: user.id, tipo });
+      recarregarMembros();
+      if (tipo === "aluno") setAddAluno(null);
+      else setAddProf(null);
+    } catch (e) {
+      alert(e instanceof ErroApi ? e.message : "Erro ao adicionar");
     } finally { setAdicionando(false); }
   };
 
   const removerMembro = async (user_id: string, tipo: "aluno" | "professor") => {
     if (!turmaAtiva || !confirm("Remover este membro da turma?")) return;
-    const res = await fetch(`/api/turmas/${turmaAtiva.id}/membros`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id, tipo }),
-    });
-    if (res.ok) recarregarMembros();
-    else alert("Erro ao remover membro");
+    try {
+      await api.turmas.removerMembro(turmaAtiva.id, { user_id, tipo });
+      recarregarMembros();
+    } catch (e) {
+      alert(e instanceof ErroApi ? e.message : "Erro ao remover membro");
+    }
   };
 
-  const displayNome = (m: Membro) => m.nome_completo || m.email || m.id;
+  const displayNome = (m: MembroTurma) => m.nome_completo || m.email || m.id;
 
   if (authLoading || !podeAcessar) {
     return (
@@ -207,7 +177,9 @@ export default function TurmasPage() {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", lg: "repeat(3,1fr)" }, gap: 3 }}>
           {turmas.map((t) => {
             const qtdAlunos = t.turma_alunos?.length ?? 0;
-            const professores = t.turma_professores?.map((tp) => tp.perfis) ?? [];
+            const professores = (t.turma_professores ?? [])
+              .map((tp) => tp.perfis)
+              .filter((perfil): perfil is MembroTurma => perfil !== null);
             return (
               <Box
                 key={t.id}
@@ -273,7 +245,7 @@ export default function TurmasPage() {
                       Prof:{" "}
                       {professores.map((p) => (
                         <span key={p.id} style={{ color: primary, fontWeight: 500 }}>
-                          {p.nome_completo || p.email}
+                          {displayNome(p)}
                         </span>
                       )).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ", ", el], [])}
                     </Typography>
@@ -381,7 +353,7 @@ export default function TurmasPage() {
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                   <Autocomplete
                     options={usuarios.professores.filter((u) => !membros.professores.find((m) => m.id === u.id))}
-                    getOptionLabel={(u) => u.nome_completo || u.email}
+                    getOptionLabel={(u) => u.nome_completo || u.email || u.id}
                     value={addProf}
                     onChange={(_, v) => setAddProf(v)}
                     size="small"
@@ -432,7 +404,7 @@ export default function TurmasPage() {
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                   <Autocomplete
                     options={usuarios.alunos.filter((u) => !membros.alunos.find((m) => m.id === u.id))}
-                    getOptionLabel={(u) => u.nome_completo || u.email}
+                    getOptionLabel={(u) => u.nome_completo || u.email || u.id}
                     value={addAluno}
                     onChange={(_, v) => setAddAluno(v)}
                     size="small"

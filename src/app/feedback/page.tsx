@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { Box, Typography, TextField, Button, MenuItem, CircularProgress, Alert } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
+import { api } from "@/lib/api-client";
+import { TIPOS_FEEDBACK, type TipoFeedback } from "@/modules/feedbacks/schema";
 
-const TIPOS = ["Elogio", "Sugestão", "Reclamação", "Problema Técnico"];
+const TIPOS = TIPOS_FEEDBACK;
 
 export default function Feedback() {
   const { primary, bg, paper, btnPrimary, btnOutlined, inputStyle } = useColors();
 
   const [nome, setNome]         = useState("");
   const [email, setEmail]       = useState("");
-  const [tipo, setTipo]         = useState("");
+  const [tipo, setTipo]         = useState<TipoFeedback | "">("");
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso]   = useState(false);
@@ -33,19 +35,11 @@ export default function Feedback() {
       const payload = {
         nome:     anonimo ? "Anônimo" : nome.trim(),
         email:    anonimo ? "anonimo@portal.com" : email.trim(),
-        tipo,
+        tipo:     tipo as TipoFeedback,
         mensagem: mensagem.trim(),
       };
 
-      const res = await fetch("/api/feedbacks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.erro ?? `Erro ${res.status} ao enviar`);
-      }
+      await api.feedbacks.enviar(payload);
 
       setSucesso(true);
       setNome(""); setEmail(""); setTipo(""); setMensagem("");
@@ -94,7 +88,7 @@ export default function Feedback() {
               onChange={e => setEmail(e.target.value)} inputProps={{ maxLength: 254 }} sx={inputStyle} />
 
             <TextField select fullWidth label="Tipo de Feedback" margin="normal" value={tipo}
-              onChange={e => setTipo(e.target.value)} sx={inputStyle}
+              onChange={e => setTipo(e.target.value as TipoFeedback)} sx={inputStyle}
               SelectProps={{ MenuProps: { PaperProps: { sx: { background: paper, color: "white" } } } }}>
               {TIPOS.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>

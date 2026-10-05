@@ -8,17 +8,11 @@ import {
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api-client";
+import { podeLerFeedbacks } from "@/modules/feedbacks/policy";
+import { TIPOS_FEEDBACK, type Feedback } from "@/modules/feedbacks/schema";
 
-type Feedback = {
-  id: string;
-  nome: string;
-  email: string;
-  tipo: string;
-  mensagem: string;
-  created_at: string;
-};
-
-const TIPOS = ["Todos", "Elogio", "Sugestão", "Reclamação", "Problema Técnico"];
+const TIPOS = ["Todos", ...TIPOS_FEEDBACK];
 
 const CHIP_COLORS: Record<string, string> = {
   Elogio:             "#3ea363",
@@ -43,7 +37,7 @@ export default function SacAdminPage() {
   const [filtro, setFiltro] = useState("Todos");
   const [loading, setLoading] = useState(true);
 
-  const podeAcessar = cargo === "gestor" || cargo === "admin";
+  const podeAcessar = podeLerFeedbacks(cargo);
 
   useEffect(() => {
     if (!authLoading && !podeAcessar) router.replace("/");
@@ -51,9 +45,10 @@ export default function SacAdminPage() {
 
   useEffect(() => {
     if (!podeAcessar) return;
-    fetch("/api/feedbacks")
-      .then((r) => r.json())
-      .then((d) => { if (Array.isArray(d)) setFeedbacks(d); })
+    api.feedbacks
+      .listar()
+      .then(setFeedbacks)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [podeAcessar]);
 

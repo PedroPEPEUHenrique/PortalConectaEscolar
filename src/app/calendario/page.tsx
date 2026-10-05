@@ -7,8 +7,9 @@ import {
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
+import { podeGerenciarEventos } from "@/modules/eventos/policy";
 
 type Evento = {
   id:     string;
@@ -30,16 +31,15 @@ export default function Calendario() {
   const [salvando,   setSalvando]   = useState(false);
   const [form,       setForm]       = useState(FORM_VAZIO);
 
-  const podeGerenciar = userRole === "gestor" || userRole === "admin";
+  const podeGerenciar = podeGerenciarEventos(userRole);
 
   const buscarEventos = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("eventos")
-      .select("id, data, evento, tipo, created_at")
-      .order("data", { ascending: true })
-      .limit(500);
-    if (!error && data) setEventos(data as Evento[]);
-    setLoading(false);
+    try {
+      setEventos(await api.eventos.listar());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { buscarEventos(); }, [buscarEventos]);
@@ -57,16 +57,12 @@ export default function Calendario() {
         tipo:   form.tipo,
       };
 
-      if (editandoId) {
-        const { error } = await supabase.from("eventos").update(payload).eq("id", editandoId);
-        if (error) { return; }
-      } else {
-        const { error } = await supabase.from("eventos").insert([payload]);
-        if (error) { return; }
-      }
+      if (editandoId) await api.eventos.atualizar(editandoId, payload);
+      else            await api.eventos.criar(payload);
 
       await buscarEventos();
       fecharModal();
+    } catch {
     } finally {
       setSalvando(false);
     }
@@ -82,9 +78,10 @@ export default function Calendario() {
 
   const handleExcluir = async (id: string) => {
     if (!window.confirm("Deseja excluir este evento?")) return;
-    const { error } = await supabase.from("eventos").delete().eq("id", id);
-    if (error) { return; }
-    buscarEventos();
+    try {
+      await api.eventos.excluir(id);
+      buscarEventos();
+    } catch {}
   };
 
   const fecharModal = () => {
