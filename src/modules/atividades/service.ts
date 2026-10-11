@@ -2,6 +2,7 @@ import "@/lib/apenas-servidor";
 import { ErroValidacao } from "@/lib/errors";
 import * as repositorio from "./repository";
 import {
+  ASSINATURA_PDF,
   MIME_PDF,
   TAMANHO_MAX_PDF,
   type Atividade,
@@ -30,6 +31,12 @@ export async function excluirAtividade(id: string): Promise<void> {
   return repositorio.remover(id);
 }
 
+async function temAssinaturaPdf(arquivo: File): Promise<boolean> {
+  const inicio = arquivo.slice(0, ASSINATURA_PDF.length);
+  const bytes = new Uint8Array(await inicio.arrayBuffer());
+  return new TextDecoder("latin1").decode(bytes) === ASSINATURA_PDF;
+}
+
 export async function enviarPdfAtividade(arquivo: File): Promise<{ url: string }> {
   if (arquivo.type !== MIME_PDF) {
     throw new ErroValidacao("Apenas arquivos PDF são aceitos");
@@ -40,6 +47,10 @@ export async function enviarPdfAtividade(arquivo: File): Promise<{ url: string }
   if (arquivo.size > TAMANHO_MAX_PDF) {
     throw new ErroValidacao("O PDF deve ter no máximo 10 MB");
   }
+  if (!(await temAssinaturaPdf(arquivo))) {
+    throw new ErroValidacao("O conteúdo do arquivo não é um PDF");
+  }
+
   const url = await repositorio.enviarPdf(arquivo);
   return { url };
 }

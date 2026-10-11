@@ -7,6 +7,7 @@ import {
   validar,
   validarParam,
 } from "@/lib/http";
+import { POLITICAS } from "@/lib/rate-limit";
 import { atualizarTurmaSchema, idTurmaSchema } from "@/modules/turmas/schema";
 import { atualizarTurma, excluirTurma } from "@/modules/turmas/service";
 
@@ -18,7 +19,7 @@ export const PUT = rota(async (request: NextRequest, { params }: Contexto) => {
   const dados = validar(atualizarTurmaSchema, await lerCorpoJson(request));
 
   return responderOk(await atualizarTurma(idTurma, dados));
-});
+}, POLITICAS.escrita);
 
 export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) => {
   const { id } = await params;
@@ -26,4 +27,4 @@ export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) =
 
   await excluirTurma(idTurma);
   return responderMensagem("Turma excluída com sucesso");
-});
+}, POLITICAS.escrita);

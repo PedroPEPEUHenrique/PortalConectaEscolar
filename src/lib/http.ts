@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AppError, ErroInterno, ErroValidacao } from "./errors";
+import {
+  AppError,
+  ErroCorpoGrande,
+  ErroInterno,
+  ErroLimiteExcedido,
+  ErroValidacao,
+} from "./errors";
+import { exigirDentroDoLimite, type Politica } from "./rate-limit";
 
 export const CABECALHOS_SEGURANCA = {
   "X-Content-Type-Options": "nosniff",
   "Cache-Control": "no-store",
 } as const;
+
+export const TAMANHO_MAX_CORPO_JSON = 64 * 1024;
 
 export function responderOk<T>(dados: T, status = 200): NextResponse {
   return NextResponse.json(dados, { status, headers: CABECALHOS_SEGURANCA });
@@ -21,16 +30,27 @@ export function responderMensagem(mensagem: string, status = 200): NextResponse 
 
 function responderErro(erro: AppError): NextResponse {
   return NextResponse.json(
-    { erro: erro.message, ...(erro.detalhes ? { detalhes: erro.detalhes } : {}) },
-    { status: erro.status, headers: CABECALHOS_SEGURANCA }
+    {
+      erro: erro.message,
+      ...(erro.detalhes ? { detalhes: erro.detalhes } : {}),
+      ...(erro instanceof ErroLimiteExcedido
+        ? { repetirApos: erro.repetirAposSegundos }
+        : {}),
+    },
+    {
+      status: erro.status,
+      headers: { ...CABECALHOS_SEGURANCA, ...erro.cabecalhos },
+    }
   );
 }
 
-export function rota<Args extends unknown[]>(
-  handler: (...args: Args) => Promise<NextResponse>
+export function rota<Args extends [Request, ...unknown[]]>(
+  handler: (...args: Args) => Promise<NextResponse>,
+  politica?: Politica
 ): (...args: Args) => Promise<NextResponse> {
   return async (...args: Args) => {
     try {
+      if (politica) await exigirDentroDoLimite(args[0], politica);
       return await handler(...args);
     } catch (e) {
       const erro =
@@ -44,11 +64,27 @@ export function rota<Args extends unknown[]>(
   };
 }
 
+function exigirTamanhoDeclaradoAceitavel(request: Request, tamanhoMaximo: number): void {
+  const declarado = request.headers.get("content-length");
+  if (declarado === null) return;
+
+  const tamanho = Number(declarado);
+  if (!Number.isFinite(tamanho) || tamanho < 0) {
+    throw new AppError("VALIDACAO", 400, "Content-Length inválido");
+  }
+  if (tamanho > tamanhoMaximo) {
+    throw new ErroCorpoGrande();
+  }
+}
+
 export async function lerCorpoJson(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     throw new AppError("VALIDACAO", 415, "Content-Type deve ser application/json");
   }
+
+  exigirTamanhoDeclaradoAceitavel(request, TAMANHO_MAX_CORPO_JSON);
+
   try {
     return await request.json();
   } catch {
@@ -80,17 +116,25 @@ export function validarParam<S extends z.ZodTypeAny>(
   return resultado.data;
 }
 
-export async function lerArquivo(request: Request, campo: string): Promise<File> {
+export async function lerArquivo(
+  request: Request,
+  campo: string,
+  tamanhoMaximoEnvelope: number
+): Promise<File> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
     throw new AppError("VALIDACAO", 415, "Content-Type deve ser multipart/form-data");
   }
+
+  exigirTamanhoDeclaradoAceitavel(request, tamanhoMaximoEnvelope);
+
   let form: FormData;
   try {
     form = await request.formData();
   } catch {
     throw new AppError("VALIDACAO", 400, "Formulário inválido");
   }
+
   const arquivo = form.get(campo);
   if (!(arquivo instanceof File)) {
     throw new ErroValidacao(`Campo "${campo}" é obrigatório e deve ser um arquivo`);

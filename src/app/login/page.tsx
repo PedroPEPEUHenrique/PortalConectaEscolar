@@ -8,11 +8,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useColors } from "@/hooks/useColors";
 
-const MAX_TENTATIVAS = 5;
-const BLOQUEIO_MS = 60_000;
-let tentativas = 0;
-let bloqueadoAte = 0;
-
 export default function Login() {
   const router = useRouter();
   const { primary, bg, paper, btnPrimary, inputStyle } = useColors();
@@ -25,11 +20,7 @@ export default function Login() {
 
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (Date.now() < bloqueadoAte) {
-      const restante = Math.ceil((bloqueadoAte - Date.now()) / 1000);
-      setError(`Muitas tentativas. Aguarde ${restante}s.`);
-      return;
-    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) { setError("Insira um e-mail válido."); return; }
     if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
@@ -37,12 +28,13 @@ export default function Login() {
     setLoading(true); setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      tentativas += 1;
-      if (tentativas >= MAX_TENTATIVAS) { bloqueadoAte = Date.now() + BLOQUEIO_MS; tentativas = 0; setError("Conta bloqueada temporariamente. Tente em 1 minuto."); }
-      else setError("E-mail ou senha incorretos.");
+      setError(
+        error.status === 429
+          ? "Muitas tentativas de login. Aguarde um instante e tente novamente."
+          : "E-mail ou senha incorretos."
+      );
       setLoading(false); return;
     }
-    tentativas = 0;
     router.push("/activities");
   }, [email, password, router]);
 

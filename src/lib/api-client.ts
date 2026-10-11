@@ -16,13 +16,28 @@ import type { DetalhesValidacao } from "./errors";
 export class ErroApi extends Error {
   readonly status: number;
   readonly detalhes?: DetalhesValidacao;
+  readonly repetirApos?: number;
 
-  constructor(mensagem: string, status: number, detalhes?: DetalhesValidacao) {
+  constructor(
+    mensagem: string,
+    status: number,
+    detalhes?: DetalhesValidacao,
+    repetirApos?: number
+  ) {
     super(mensagem);
     this.name = "ErroApi";
     this.status = status;
     this.detalhes = detalhes;
+    this.repetirApos = repetirApos;
   }
+
+  get excedeuLimite(): boolean {
+    return this.status === 429;
+  }
+}
+
+export function mensagemDeErro(erro: unknown, padrao: string): string {
+  return erro instanceof ErroApi ? erro.message : padrao;
 }
 
 async function requisitar<T>(url: string, init?: RequestInit): Promise<T> {
@@ -31,10 +46,17 @@ async function requisitar<T>(url: string, init?: RequestInit): Promise<T> {
   const corpo: unknown = await resposta.json().catch(() => null);
 
   if (!resposta.ok) {
-    const dados = (corpo ?? {}) as { erro?: unknown; detalhes?: DetalhesValidacao };
+    const dados = (corpo ?? {}) as {
+      erro?: unknown;
+      detalhes?: DetalhesValidacao;
+      repetirApos?: unknown;
+    };
     const mensagem =
       typeof dados.erro === "string" ? dados.erro : "Erro " + resposta.status + " na requisição";
-    throw new ErroApi(mensagem, resposta.status, dados.detalhes);
+    const repetirApos =
+      typeof dados.repetirApos === "number" ? dados.repetirApos : undefined;
+
+    throw new ErroApi(mensagem, resposta.status, dados.detalhes, repetirApos);
   }
 
   return corpo as T;

@@ -387,3 +387,68 @@ CREATE POLICY "turma_professores: exclusão gestor/admin"
 --
 -- Cargos disponíveis: 'aluno' | 'professor' | 'gestor' | 'admin'
 -- =============================================================================
+
+
+-- =============================================================================
+-- TABELA: rate_limit_eventos
+-- Contador de janela deslizante usado pelas rotas de API.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS rate_limit_eventos (
+  id          BIGSERIAL   PRIMARY KEY,
+  chave       TEXT        NOT NULL,
+  ocorrido_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS rate_limit_eventos_chave_idx
+  ON rate_limit_eventos (chave, ocorrido_em DESC);
+
+ALTER TABLE rate_limit_eventos ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION consumir_rate_limit(
+  p_chave           TEXT,
+  p_limite          INT,
+  p_janela_segundos INT
+)
+RETURNS TABLE (permitido BOOLEAN, restantes INT, repetir_apos_segundos INT)
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_inicio      TIMESTAMPTZ := NOW() - make_interval(secs => p_janela_segundos);
+  v_usados      INT;
+  v_mais_antigo TIMESTAMPTZ;
+BEGIN
+  PERFORM pg_advisory_xact_lock(hashtext(p_chave));
+
+  DELETE FROM rate_limit_eventos
+  WHERE chave = p_chave AND ocorrido_em < v_inicio;
+
+  SELECT COUNT(*), MIN(ocorrido_em)
+  INTO v_usados, v_mais_antigo
+  FROM rate_limit_eventos
+  WHERE chave = p_chave;
+
+  IF v_usados >= p_limite THEN
+    RETURN QUERY SELECT
+      FALSE,
+      0,
+      GREATEST(
+        1,
+        CEIL(
+          EXTRACT(
+            EPOCH FROM (v_mais_antigo + make_interval(secs => p_janela_segundos)) - NOW()
+          )
+        )::INT
+      );
+    RETURN;
+  END IF;
+
+  INSERT INTO rate_limit_eventos (chave) VALUES (p_chave);
+
+  RETURN QUERY SELECT TRUE, p_limite - v_usados - 1, 0;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION consumir_rate_limit(TEXT, INT, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION consumir_rate_limit(TEXT, INT, INT) TO service_role;

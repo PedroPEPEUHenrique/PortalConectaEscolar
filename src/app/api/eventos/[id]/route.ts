@@ -7,6 +7,7 @@ import {
   validar,
   validarParam,
 } from "@/lib/http";
+import { POLITICAS } from "@/lib/rate-limit";
 import { atualizarEventoSchema, idEventoSchema } from "@/modules/eventos/schema";
 import { atualizarEvento, excluirEvento } from "@/modules/eventos/service";
 
@@ -18,7 +19,7 @@ export const PUT = rota(async (request: NextRequest, { params }: Contexto) => {
   const dados = validar(atualizarEventoSchema, await lerCorpoJson(request));
 
   return responderOk(await atualizarEvento(idEvento, dados));
-});
+}, POLITICAS.escrita);
 
 export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) => {
   const { id } = await params;
@@ -26,4 +27,4 @@ export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) =
 
   await excluirEvento(idEvento);
   return responderMensagem("Evento excluído com sucesso");
-});
+}, POLITICAS.escrita);

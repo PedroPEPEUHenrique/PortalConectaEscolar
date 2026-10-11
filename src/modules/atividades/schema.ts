@@ -4,13 +4,38 @@ export const STATUS_ATIVIDADE = ["Pendente", "Em andamento", "Concluído"] as co
 export type StatusAtividade = (typeof STATUS_ATIVIDADE)[number];
 
 export const TAMANHO_MAX_PDF = 10 * 1024 * 1024;
+export const TAMANHO_MAX_ENVELOPE_PDF = TAMANHO_MAX_PDF + 8 * 1024;
 export const MIME_PDF = "application/pdf";
+export const ASSINATURA_PDF = "%PDF-";
+
+const HOST_STORAGE = (() => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return null;
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+})();
+
+const urlPdfSchema = z
+  .string()
+  .url()
+  .refine((valor) => {
+    if (!HOST_STORAGE) return false;
+    try {
+      const url = new URL(valor);
+      return url.protocol === "https:" && url.host === HOST_STORAGE;
+    } catch {
+      return false;
+    }
+  }, "O PDF deve estar hospedado no storage do projeto via https");
 
 export const criarAtividadeSchema = z.object({
   titulo: z.string().trim().min(1, "Título obrigatório").max(200),
   descricao: z.string().trim().max(2000).default(""),
   status: z.enum(STATUS_ATIVIDADE),
-  arquivo_pdf_url: z.string().url().nullable().optional(),
+  arquivo_pdf_url: urlPdfSchema.nullable().optional(),
 });
 
 export const atualizarAtividadeSchema = criarAtividadeSchema

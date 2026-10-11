@@ -7,7 +7,8 @@ import {
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { api } from "@/lib/api-client";
+import { api, mensagemDeErro } from "@/lib/api-client";
+import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { podeGerenciarEventos } from "@/modules/eventos/policy";
 
@@ -23,6 +24,7 @@ const FORM_VAZIO = { data: "", evento: "", tipo: "Evento" };
 export default function Calendario() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
+  const { notificarErro } = useToast();
 
   const [eventos,    setEventos]    = useState<Evento[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -36,11 +38,12 @@ export default function Calendario() {
   const buscarEventos = useCallback(async () => {
     try {
       setEventos(await api.eventos.listar());
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível carregar o calendário."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notificarErro]);
 
   useEffect(() => { buscarEventos(); }, [buscarEventos]);
 
@@ -62,7 +65,8 @@ export default function Calendario() {
 
       await buscarEventos();
       fecharModal();
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível salvar o evento."));
     } finally {
       setSalvando(false);
     }
@@ -81,7 +85,9 @@ export default function Calendario() {
     try {
       await api.eventos.excluir(id);
       buscarEventos();
-    } catch {}
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível excluir o evento."));
+    }
   };
 
   const fecharModal = () => {

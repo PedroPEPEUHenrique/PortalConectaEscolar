@@ -8,7 +8,8 @@ import {
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api-client";
+import { api, mensagemDeErro } from "@/lib/api-client";
+import { useToast } from "@/context/ToastContext";
 import { podeLerFeedbacks } from "@/modules/feedbacks/policy";
 import { TIPOS_FEEDBACK, type Feedback } from "@/modules/feedbacks/schema";
 
@@ -30,6 +31,7 @@ function formatData(iso: string) {
 
 export default function SacAdminPage() {
   const { cargo, loading: authLoading } = useAuth();
+  const { notificarErro } = useToast();
   const router = useRouter();
   const { primary, bg, paper, inputStyle } = useColors();
 
@@ -48,9 +50,9 @@ export default function SacAdminPage() {
     api.feedbacks
       .listar()
       .then(setFeedbacks)
-      .catch(() => {})
+      .catch((e) => notificarErro(mensagemDeErro(e, "Não foi possível carregar os feedbacks.")))
       .finally(() => setLoading(false));
-  }, [podeAcessar]);
+  }, [podeAcessar, notificarErro]);
 
   const lista = filtro === "Todos" ? feedbacks : feedbacks.filter((f) => f.tipo === filtro);
 

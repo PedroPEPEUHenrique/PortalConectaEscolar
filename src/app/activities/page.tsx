@@ -7,7 +7,8 @@ import {
   TextField, MenuItem,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { api } from "@/lib/api-client";
+import { api, mensagemDeErro } from "@/lib/api-client";
+import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { podeGerenciarAtividades } from "@/modules/atividades/policy";
 import type { Atividade, StatusAtividade } from "@/modules/atividades/schema";
@@ -23,6 +24,7 @@ const FORM_VAZIO = { titulo: "", descricao: "", status: "Pendente" as StatusAtiv
 export default function Activities() {
   const { primary, bg, paper, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
+  const { notificarErro } = useToast();
 
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -39,11 +41,12 @@ export default function Activities() {
   const buscarAtividades = useCallback(async () => {
     try {
       setAtividades(await api.atividades.listar());
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível carregar as atividades."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notificarErro]);
 
   useEffect(() => { buscarAtividades(); }, [buscarAtividades]);
 
@@ -65,7 +68,8 @@ export default function Activities() {
 
       await buscarAtividades();
       fecharModal();
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível salvar a atividade."));
     } finally {
       setSalvando(false);
     }
@@ -86,7 +90,8 @@ export default function Activities() {
       await api.atividades.excluir(confirmar.id);
       setConfirmar(null);
       buscarAtividades();
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível excluir a atividade."));
     } finally {
       setExcluindo(false);
     }

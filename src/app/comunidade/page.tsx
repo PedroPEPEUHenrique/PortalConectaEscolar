@@ -6,7 +6,8 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from "@mui/material";
 import { useColors } from "@/hooks/useColors";
-import { api } from "@/lib/api-client";
+import { api, mensagemDeErro } from "@/lib/api-client";
+import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { podeGerenciarComunidade } from "@/modules/comunidade/policy";
 
@@ -21,6 +22,7 @@ const FORM_VAZIO = { autor: "", mensagem: "" };
 export default function Comunidade() {
   const { primary, bg, btnPrimary, inputStyle, dialogPaper } = useColors();
   const { cargo: userRole } = useAuth();
+  const { notificarErro } = useToast();
 
   const [posts,      setPosts]      = useState<Post[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -34,11 +36,12 @@ export default function Comunidade() {
   const buscarPosts = useCallback(async () => {
     try {
       setPosts(await api.comunidade.listar());
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível carregar os avisos."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notificarErro]);
 
   useEffect(() => { buscarPosts(); }, [buscarPosts]);
 
@@ -53,7 +56,8 @@ export default function Comunidade() {
 
       await buscarPosts();
       fecharModal();
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível salvar o aviso."));
     } finally {
       setSalvando(false);
     }
@@ -72,7 +76,9 @@ export default function Comunidade() {
     try {
       await api.comunidade.excluir(id);
       buscarPosts();
-    } catch {}
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível excluir o aviso."));
+    }
   };
 
   const fecharModal = () => {

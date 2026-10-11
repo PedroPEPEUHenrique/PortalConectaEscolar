@@ -8,6 +8,7 @@ import {
   validar,
   validarParam,
 } from "@/lib/http";
+import { POLITICAS } from "@/lib/rate-limit";
 import { idTurmaSchema, membroSchema } from "@/modules/turmas/schema";
 import { adicionarMembro, listarMembros, removerMembro } from "@/modules/turmas/service";
 
@@ -18,7 +19,7 @@ export const GET = rota(async (_request: NextRequest, { params }: Contexto) => {
   const idTurma = validarParam(idTurmaSchema, id);
 
   return responderOk(await listarMembros(idTurma));
-});
+}, POLITICAS.leitura);
 
 export const POST = rota(async (request: NextRequest, { params }: Contexto) => {
   const { id } = await params;
@@ -27,7 +28,7 @@ export const POST = rota(async (request: NextRequest, { params }: Contexto) => {
 
   await adicionarMembro(idTurma, membro);
   return responderCriado({ mensagem: "Membro adicionado" });
-});
+}, POLITICAS.escrita);
 
 export const DELETE = rota(async (request: NextRequest, { params }: Contexto) => {
   const { id } = await params;
@@ -36,4 +37,4 @@ export const DELETE = rota(async (request: NextRequest, { params }: Contexto) =>
 
   await removerMembro(idTurma, membro);
   return responderMensagem("Membro removido");
-});
+}, POLITICAS.escrita);

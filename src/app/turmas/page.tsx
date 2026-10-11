@@ -12,7 +12,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
-import { api, ErroApi } from "@/lib/api-client";
+import { api, mensagemDeErro } from "@/lib/api-client";
+import { useToast } from "@/context/ToastContext";
 import { podeGerenciarTurmas } from "@/modules/turmas/policy";
 import type { MembroTurma, Turma } from "@/modules/turmas/schema";
 import type { Perfil } from "@/modules/perfis/schema";
@@ -21,6 +22,7 @@ const ANO_ATUAL = new Date().getFullYear().toString();
 
 export default function TurmasPage() {
   const { cargo, loading: authLoading } = useAuth();
+  const { notificarErro } = useToast();
   const router = useRouter();
   const { primary, bg, paper, inputStyle, btnPrimary, btnOutlined, dialogPaper } = useColors();
 
@@ -51,11 +53,12 @@ export default function TurmasPage() {
     setLoading(true);
     try {
       setTurmas(await api.turmas.listar());
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível carregar as turmas."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notificarErro]);
 
   useEffect(() => { if (podeAcessar) buscarTurmas(); }, [podeAcessar, buscarTurmas]);
 
@@ -75,7 +78,8 @@ export default function TurmasPage() {
 
       fecharTurmaModal();
       buscarTurmas();
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível salvar a turma."));
     } finally { setSalvando(false); }
   };
 
@@ -90,7 +94,9 @@ export default function TurmasPage() {
     try {
       await api.turmas.excluir(id);
       buscarTurmas();
-    } catch {}
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível excluir a turma."));
+    }
   };
 
   const fecharTurmaModal = () => {
@@ -105,7 +111,8 @@ export default function TurmasPage() {
     setLoadingMembros(true);
     try {
       setMembros(await api.turmas.listarMembros(t.id));
-    } catch {
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível carregar os membros."));
     } finally { setLoadingMembros(false); }
   };
 
@@ -113,7 +120,9 @@ export default function TurmasPage() {
     if (!turmaAtiva) return;
     try {
       setMembros(await api.turmas.listarMembros(turmaAtiva.id));
-    } catch {}
+    } catch (e) {
+      notificarErro(mensagemDeErro(e, "Não foi possível recarregar os membros."));
+    }
     buscarTurmas();
   };
 
@@ -126,7 +135,7 @@ export default function TurmasPage() {
       if (tipo === "aluno") setAddAluno(null);
       else setAddProf(null);
     } catch (e) {
-      alert(e instanceof ErroApi ? e.message : "Erro ao adicionar");
+      notificarErro(mensagemDeErro(e, "Não foi possível adicionar o membro."));
     } finally { setAdicionando(false); }
   };
 
@@ -136,7 +145,7 @@ export default function TurmasPage() {
       await api.turmas.removerMembro(turmaAtiva.id, { user_id, tipo });
       recarregarMembros();
     } catch (e) {
-      alert(e instanceof ErroApi ? e.message : "Erro ao remover membro");
+      notificarErro(mensagemDeErro(e, "Não foi possível remover o membro."));
     }
   };
 

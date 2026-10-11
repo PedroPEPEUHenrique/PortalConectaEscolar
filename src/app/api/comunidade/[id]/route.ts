@@ -7,6 +7,7 @@ import {
   validar,
   validarParam,
 } from "@/lib/http";
+import { POLITICAS } from "@/lib/rate-limit";
 import { atualizarAvisoSchema, idAvisoSchema } from "@/modules/comunidade/schema";
 import { atualizarAviso, excluirAviso } from "@/modules/comunidade/service";
 
@@ -18,7 +19,7 @@ export const PUT = rota(async (request: NextRequest, { params }: Contexto) => {
   const dados = validar(atualizarAvisoSchema, await lerCorpoJson(request));
 
   return responderOk(await atualizarAviso(idAviso, dados));
-});
+}, POLITICAS.escrita);
 
 export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) => {
   const { id } = await params;
@@ -26,4 +27,4 @@ export const DELETE = rota(async (_request: NextRequest, { params }: Contexto) =
 
   await excluirAviso(idAviso);
   return responderMensagem("Aviso excluído com sucesso");
-});
+}, POLITICAS.escrita);

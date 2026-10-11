@@ -1,5 +1,7 @@
 export type CodigoErro =
   | "VALIDACAO"
+  | "CORPO_GRANDE"
+  | "LIMITE_EXCEDIDO"
   | "NAO_AUTENTICADO"
   | "NAO_AUTORIZADO"
   | "NAO_ENCONTRADO"
@@ -11,6 +13,7 @@ export type DetalhesValidacao = Record<string, string[] | undefined>;
 type OpcoesErro = {
   detalhes?: DetalhesValidacao;
   causa?: unknown;
+  cabecalhos?: Record<string, string>;
 };
 
 export class AppError extends Error {
@@ -18,6 +21,7 @@ export class AppError extends Error {
   readonly status: number;
   readonly detalhes?: DetalhesValidacao;
   readonly causa?: unknown;
+  readonly cabecalhos?: Record<string, string>;
 
   constructor(codigo: CodigoErro, status: number, mensagem: string, opcoes: OpcoesErro = {}) {
     super(mensagem);
@@ -26,12 +30,33 @@ export class AppError extends Error {
     this.status = status;
     this.detalhes = opcoes.detalhes;
     this.causa = opcoes.causa;
+    this.cabecalhos = opcoes.cabecalhos;
   }
 }
 
 export class ErroValidacao extends AppError {
   constructor(mensagem = "Dados inválidos", opcoes: OpcoesErro = {}) {
     super("VALIDACAO", 422, mensagem, opcoes);
+  }
+}
+
+export class ErroCorpoGrande extends AppError {
+  constructor(mensagem = "Corpo da requisição excede o tamanho permitido", opcoes: OpcoesErro = {}) {
+    super("CORPO_GRANDE", 413, mensagem, opcoes);
+  }
+}
+
+export class ErroLimiteExcedido extends AppError {
+  readonly repetirAposSegundos: number;
+
+  constructor(
+    repetirAposSegundos: number,
+    mensagem = "Muitas requisições. Aguarde antes de tentar novamente."
+  ) {
+    super("LIMITE_EXCEDIDO", 429, mensagem, {
+      cabecalhos: { "Retry-After": String(repetirAposSegundos) },
+    });
+    this.repetirAposSegundos = repetirAposSegundos;
   }
 }
 
