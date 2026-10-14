@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Ordenacao } from "@/lib/ordenacao";
+
 export const TIPOS_FEEDBACK = [
   "Elogio",
   "Sugestão",
@@ -14,6 +16,14 @@ export const criarFeedbackSchema = z.object({
   tipo: z.enum(TIPOS_FEEDBACK),
   mensagem: z.string().trim().min(1, "Mensagem obrigatória").max(2000),
 });
+
+export const COLUNAS_ORDENAVEIS = ["created_at", "tipo", "nome"] as const;
+export type ColunaOrdenavel = (typeof COLUNAS_ORDENAVEIS)[number];
+
+export const ORDENACAO_PADRAO: Ordenacao<ColunaOrdenavel> = {
+  coluna: "created_at",
+  ascendente: false,
+};
 
 export type CriarFeedback = z.infer<typeof criarFeedbackSchema>;
 

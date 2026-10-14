@@ -1,17 +1,26 @@
 import "@/lib/apenas-servidor";
 import { db } from "@/lib/db";
 import { ErroInterno, ErroNaoEncontrado, mapearErroBanco } from "@/lib/errors";
-import type { Atividade, AtualizarAtividade, CriarAtividade } from "./schema";
+import type { Ordenacao } from "@/lib/ordenacao";
+import type {
+  Atividade,
+  AtualizarAtividade,
+  ColunaOrdenavel,
+  CriarAtividade,
+} from "./schema";
 import { MIME_PDF } from "./schema";
 
 const COLUNAS = "id, titulo, descricao, status, arquivo_pdf_url, created_at";
 const BUCKET = "atividades_pdfs";
 
-export async function listar(limite: number): Promise<Atividade[]> {
+export async function listar(
+  limite: number,
+  ordenacao: Ordenacao<ColunaOrdenavel>
+): Promise<Atividade[]> {
   const { data, error } = await db()
     .from("atividades")
     .select(COLUNAS)
-    .order("created_at", { ascending: false })
+    .order(ordenacao.coluna, { ascending: ordenacao.ascendente })
     .limit(limite);
 
   if (error) throw mapearErroBanco(error, "Falha ao buscar atividades");

@@ -41,11 +41,11 @@ UPDATE perfis SET matricula = LPAD(nextval('matricula_seq')::text, 6, '0') WHERE
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
+SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
   INSERT INTO public.perfis (id, cargo, email, matricula)
-  VALUES (NEW.id, 'aluno', NEW.email, LPAD(nextval('matricula_seq')::text, 6, '0'))
+  VALUES (NEW.id, 'aluno', NEW.email, LPAD(nextval('public.matricula_seq')::text, 6, '0'))
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
@@ -412,7 +412,7 @@ CREATE OR REPLACE FUNCTION consumir_rate_limit(
 )
 RETURNS TABLE (permitido BOOLEAN, restantes INT, repetir_apos_segundos INT)
 LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
+SECURITY DEFINER SET search_path = ''
 AS $$
 DECLARE
   v_inicio      TIMESTAMPTZ := NOW() - make_interval(secs => p_janela_segundos);
@@ -421,12 +421,12 @@ DECLARE
 BEGIN
   PERFORM pg_advisory_xact_lock(hashtext(p_chave));
 
-  DELETE FROM rate_limit_eventos
+  DELETE FROM public.rate_limit_eventos
   WHERE chave = p_chave AND ocorrido_em < v_inicio;
 
   SELECT COUNT(*), MIN(ocorrido_em)
   INTO v_usados, v_mais_antigo
-  FROM rate_limit_eventos
+  FROM public.rate_limit_eventos
   WHERE chave = p_chave;
 
   IF v_usados >= p_limite THEN
@@ -444,7 +444,7 @@ BEGIN
     RETURN;
   END IF;
 
-  INSERT INTO rate_limit_eventos (chave) VALUES (p_chave);
+  INSERT INTO public.rate_limit_eventos (chave) VALUES (p_chave);
 
   RETURN QUERY SELECT TRUE, p_limite - v_usados - 1, 0;
 END;

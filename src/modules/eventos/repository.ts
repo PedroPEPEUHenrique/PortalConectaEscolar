@@ -1,15 +1,19 @@
 import "@/lib/apenas-servidor";
 import { db } from "@/lib/db";
 import { ErroNaoEncontrado, mapearErroBanco } from "@/lib/errors";
-import type { AtualizarEvento, CriarEvento, Evento } from "./schema";
+import type { Ordenacao } from "@/lib/ordenacao";
+import type { AtualizarEvento, ColunaOrdenavel, CriarEvento, Evento } from "./schema";
 
 const COLUNAS = "id, data, evento, tipo, created_at";
 
-export async function listar(limite: number): Promise<Evento[]> {
+export async function listar(
+  limite: number,
+  ordenacao: Ordenacao<ColunaOrdenavel>
+): Promise<Evento[]> {
   const { data, error } = await db()
     .from("eventos")
     .select(COLUNAS)
-    .order("data", { ascending: true })
+    .order(ordenacao.coluna, { ascending: ordenacao.ascendente })
     .limit(limite);
 
   if (error) throw mapearErroBanco(error, "Falha ao buscar eventos");

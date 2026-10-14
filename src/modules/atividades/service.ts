@@ -1,19 +1,24 @@
 import "@/lib/apenas-servidor";
 import { ErroValidacao } from "@/lib/errors";
+import type { Ordenacao } from "@/lib/ordenacao";
 import * as repositorio from "./repository";
 import {
   ASSINATURA_PDF,
   MIME_PDF,
+  ORDENACAO_PADRAO,
   TAMANHO_MAX_PDF,
   type Atividade,
   type AtualizarAtividade,
+  type ColunaOrdenavel,
   type CriarAtividade,
 } from "./schema";
 
 const LIMITE_LISTAGEM = 200;
 
-export async function listarAtividades(): Promise<Atividade[]> {
-  return repositorio.listar(LIMITE_LISTAGEM);
+export async function listarAtividades(
+  ordenacao: Ordenacao<ColunaOrdenavel> = ORDENACAO_PADRAO
+): Promise<Atividade[]> {
+  return repositorio.listar(LIMITE_LISTAGEM, ordenacao);
 }
 
 export async function criarAtividade(dados: CriarAtividade): Promise<Atividade> {

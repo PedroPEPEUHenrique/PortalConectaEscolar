@@ -1,15 +1,19 @@
 import "@/lib/apenas-servidor";
 import { db } from "@/lib/db";
 import { ErroNaoEncontrado, mapearErroBanco } from "@/lib/errors";
-import type { AtualizarAviso, Aviso, CriarAviso } from "./schema";
+import type { Ordenacao } from "@/lib/ordenacao";
+import type { AtualizarAviso, Aviso, ColunaOrdenavel, CriarAviso } from "./schema";
 
 const COLUNAS = "id, autor, mensagem, created_at";
 
-export async function listar(limite: number): Promise<Aviso[]> {
+export async function listar(
+  limite: number,
+  ordenacao: Ordenacao<ColunaOrdenavel>
+): Promise<Aviso[]> {
   const { data, error } = await db()
     .from("comunidade")
     .select(COLUNAS)
-    .order("created_at", { ascending: false })
+    .order(ordenacao.coluna, { ascending: ordenacao.ascendente })
     .limit(limite);
 
   if (error) throw mapearErroBanco(error, "Falha ao buscar avisos");

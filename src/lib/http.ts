@@ -7,6 +7,7 @@ import {
   ErroLimiteExcedido,
   ErroValidacao,
 } from "./errors";
+import { cabecalhosCors, exigirOrigemConfiavel } from "./origem";
 import { exigirDentroDoLimite, type Politica } from "./rate-limit";
 
 export const CABECALHOS_SEGURANCA = {
@@ -49,9 +50,13 @@ export function rota<Args extends [Request, ...unknown[]]>(
   politica?: Politica
 ): (...args: Args) => Promise<NextResponse> {
   return async (...args: Args) => {
+    const request = args[0];
+    let resposta: NextResponse;
+
     try {
-      if (politica) await exigirDentroDoLimite(args[0], politica);
-      return await handler(...args);
+      exigirOrigemConfiavel(request);
+      if (politica) await exigirDentroDoLimite(request, politica);
+      resposta = await handler(...args);
     } catch (e) {
       const erro =
         e instanceof AppError ? e : new ErroInterno("Erro interno do servidor", { causa: e });
@@ -59,8 +64,13 @@ export function rota<Args extends [Request, ...unknown[]]>(
       if (erro.status >= 500) {
         console.error(`[${erro.codigo}] ${erro.message}`, erro.causa ?? e);
       }
-      return responderErro(erro);
+      resposta = responderErro(erro);
     }
+
+    for (const [chave, valor] of Object.entries(cabecalhosCors(request))) {
+      resposta.headers.set(chave, valor);
+    }
+    return resposta;
   };
 }
 

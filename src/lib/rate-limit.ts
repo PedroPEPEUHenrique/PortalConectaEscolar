@@ -21,23 +21,33 @@ export const POLITICAS = {
   feedbackPublico: { nome: "feedback-publico", limite: 3, janelaSegundos: 600 },
 } satisfies Record<string, Politica>;
 
-const CONFIAR_EM_PROXY = process.env.RATE_LIMIT_TRUST_PROXY !== "false";
+const PROXIES_CONFIAVEIS = Number(process.env.RATE_LIMIT_PROXIES_CONFIAVEIS ?? "1");
 
-const IP_DESCONHECIDO = "ip-desconhecido";
+const TAMANHO_MAX_IDENTIFICADOR = 64;
+
+const ORIGEM_INDETERMINADA = "origem-indeterminada";
+
+const FORMATO_ENDERECO = /^[0-9a-fA-F.:]{3,45}$/;
 
 export function identificarOrigem(request: Request): string {
-  if (!CONFIAR_EM_PROXY) return IP_DESCONHECIDO;
-
-  const encaminhado = request.headers.get("x-forwarded-for");
-  if (encaminhado) {
-    const primeiro = encaminhado.split(",")[0]?.trim();
-    if (primeiro) return primeiro;
+  if (!Number.isInteger(PROXIES_CONFIAVEIS) || PROXIES_CONFIAVEIS < 1) {
+    return ORIGEM_INDETERMINADA;
   }
 
-  const real = request.headers.get("x-real-ip")?.trim();
-  if (real) return real;
+  const encaminhado = request.headers.get("x-forwarded-for");
+  if (!encaminhado) return ORIGEM_INDETERMINADA;
 
-  return IP_DESCONHECIDO;
+  const saltos = encaminhado
+    .split(",")
+    .map((salto) => salto.trim())
+    .filter(Boolean);
+
+  if (saltos.length === 0) return ORIGEM_INDETERMINADA;
+
+  const indice = Math.max(0, saltos.length - PROXIES_CONFIAVEIS);
+  const candidato = saltos[indice].slice(0, TAMANHO_MAX_IDENTIFICADOR);
+
+  return FORMATO_ENDERECO.test(candidato) ? candidato : ORIGEM_INDETERMINADA;
 }
 
 async function consumir(chave: string, politica: Politica): Promise<ResultadoLimite> {

@@ -1,11 +1,15 @@
 import "@/lib/apenas-servidor";
+import type { Ordenacao } from "@/lib/ordenacao";
 import * as repositorio from "./repository";
-import type { AtualizarAviso, Aviso, CriarAviso } from "./schema";
+import { ORDENACAO_PADRAO } from "./schema";
+import type { AtualizarAviso, Aviso, ColunaOrdenavel, CriarAviso } from "./schema";
 
 const LIMITE_LISTAGEM = 100;
 
-export async function listarAvisos(): Promise<Aviso[]> {
-  return repositorio.listar(LIMITE_LISTAGEM);
+export async function listarAvisos(
+  ordenacao: Ordenacao<ColunaOrdenavel> = ORDENACAO_PADRAO
+): Promise<Aviso[]> {
+  return repositorio.listar(LIMITE_LISTAGEM, ordenacao);
 }
 
 export async function criarAviso(dados: CriarAviso): Promise<Aviso> {

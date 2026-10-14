@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Ordenacao } from "@/lib/ordenacao";
+
 export const STATUS_ATIVIDADE = ["Pendente", "Em andamento", "Concluído"] as const;
 export type StatusAtividade = (typeof STATUS_ATIVIDADE)[number];
 
@@ -43,6 +45,14 @@ export const atualizarAtividadeSchema = criarAtividadeSchema
   .refine((valores) => Object.keys(valores).length > 0, {
     message: "Informe ao menos um campo para atualizar",
   });
+
+export const COLUNAS_ORDENAVEIS = ["created_at", "titulo", "status"] as const;
+export type ColunaOrdenavel = (typeof COLUNAS_ORDENAVEIS)[number];
+
+export const ORDENACAO_PADRAO: Ordenacao<ColunaOrdenavel> = {
+  coluna: "created_at",
+  ascendente: false,
+};
 
 export const idAtividadeSchema = z.string().uuid();
 

@@ -2,6 +2,7 @@ export type CodigoErro =
   | "VALIDACAO"
   | "CORPO_GRANDE"
   | "LIMITE_EXCEDIDO"
+  | "ORIGEM_NAO_PERMITIDA"
   | "NAO_AUTENTICADO"
   | "NAO_AUTORIZADO"
   | "NAO_ENCONTRADO"
@@ -57,6 +58,15 @@ export class ErroLimiteExcedido extends AppError {
       cabecalhos: { "Retry-After": String(repetirAposSegundos) },
     });
     this.repetirAposSegundos = repetirAposSegundos;
+  }
+}
+
+export class ErroOrigemNaoPermitida extends AppError {
+  constructor(
+    mensagem = "Requisição bloqueada: origem não permitida",
+    opcoes: OpcoesErro = {}
+  ) {
+    super("ORIGEM_NAO_PERMITIDA", 403, mensagem, opcoes);
   }
 }
 
